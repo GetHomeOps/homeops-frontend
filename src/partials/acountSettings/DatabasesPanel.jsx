@@ -1,7 +1,7 @@
 import React, {useContext, useState} from "react";
 import {useTranslation} from "react-i18next";
 import {useNavigate} from "react-router-dom";
-import UserContext from "../../auth/UserContext";
+import UserContext from "../../context/AppContext";
 
 function DatabasesPanel({currentUser}) {
   const [comments, setComments] = useState(true);

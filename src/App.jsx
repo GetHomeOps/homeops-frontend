@@ -2,7 +2,7 @@ import React, {useState, useEffect} from "react";
 import {Routes, Route, useLocation} from "react-router-dom";
 import useLocalStorage from "./hooks/useLocalStorage";
 import RoutesList from "./pages/routes-nav/RoutesList";
-import UserContext from "./auth/UserContext";
+import AppContext from "./context/AppContext";
 import AppApi from "./api/api";
 import {jwtDecode as decode} from "jwt-decode";
 
@@ -31,6 +31,12 @@ function App() {
   });
   const [currentDb, setCurrentDb] = useLocalStorage("current-db", null);
   const [databaseApps, setDatabaseApps] = useState([]);
+  const [apps, setApps] = useState([]);
+  const [viewMode, setViewMode] = useLocalStorage("apps-view-mode", "filter");
+  const [expandedCategories, setExpandedCategories] = useLocalStorage(
+    "expanded-categories",
+    []
+  );
 
   // Key name for storing token in localStorage for "remember me" re-login
   const [token, setToken] = useLocalStorage(TOKEN_STORAGE_ID);
@@ -119,6 +125,19 @@ function App() {
     loadApps();
   }, [currentDb]);
 
+  /* Gell All Apps (Only for Super_Admin) */
+  useEffect(() => {
+    async function getAllApps() {
+      try {
+        let apps = await AppApi.getAllApps();
+        setApps(apps);
+      } catch (err) {
+        console.error("There was an error retrieving all apps: ", err);
+      }
+    }
+    getAllApps();
+  }, []);
+
   /** Handles site-wide logout */
   function logout() {
     setCurrentUser({
@@ -134,12 +153,75 @@ function App() {
     setCurrentDb(dbId);
   }
 
-  console.log("dbApps", databaseApps);
+  /* Creates app on database */
+  async function createApp(appData) {
+    try {
+      let res = await AppApi.addApp({
+        name: appData.name,
+        icon: appData.icon,
+        url: appData.url,
+        category: appData.category,
+        description: appData.description,
+      });
+
+      if (res) {
+        setApps((prevApps) =>
+          [...prevApps, res].sort((a, b) => a.name.localeCompare(b.name))
+        );
+        return res;
+      }
+      return res;
+    } catch (error) {
+      console.error("Error creating new app:", error);
+      throw error;
+    }
+  }
+
+  /* Updates app in database */
+  async function updateApp(id, appData) {
+    try {
+      let res = await AppApi.updateApp(id, {
+        name: appData.name,
+        icon: appData.icon,
+        url: appData.url,
+        category: appData.category,
+        description: appData.description,
+      });
+
+      if (res) {
+        setApps((prevApps) => {
+          const updatedApps = prevApps.map((app) =>
+            app.id === Number(id) ? res : app
+          );
+          return updatedApps;
+        });
+        return res;
+      }
+    } catch (error) {
+      console.error("Error updating app:", error);
+      throw error;
+    }
+  }
+
+  /* Deletes app from database */
+  async function deleteApp(id) {
+    try {
+      let res = await AppApi.deleteApp(id);
+
+      if (res) {
+        setApps((prevApps) => prevApps.filter((app) => app.id !== Number(id)));
+        return res;
+      }
+    } catch (error) {
+      console.error("Error deleting app:", error);
+      throw error;
+    }
+  }
 
   if (currentUser.isLoading) return <div>Loading...</div>;
 
   return (
-    <UserContext.Provider
+    <AppContext.Provider
       value={{
         currentUser: currentUser.data,
         setCurrentUser,
@@ -148,6 +230,14 @@ function App() {
         logout,
         setSelectedDb,
         currentDb,
+        apps,
+        createApp,
+        updateApp,
+        deleteApp,
+        viewMode,
+        setViewMode,
+        expandedCategories,
+        setExpandedCategories,
       }}
     >
       <RoutesList
@@ -155,8 +245,9 @@ function App() {
         login={login}
         signup={signup}
         logout={logout}
+        createApp={createApp}
       />
-    </UserContext.Provider>
+    </AppContext.Provider>
   );
 }
 

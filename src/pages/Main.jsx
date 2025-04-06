@@ -6,7 +6,7 @@ import Header from "../partials/Header";
 import AppCard from "../partials/apps/AppCard";
 import AppApi from "../api/api";
 import {useContext} from "react";
-import UserContext from "../auth/UserContext";
+import UserContext from "../context/AppContext";
 
 import CampaignsCard from "../partials/campaigns/CampaignsCard";
 

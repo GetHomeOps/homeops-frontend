@@ -2,43 +2,36 @@ import React, {useState, useEffect} from "react";
 import AppsTableItem from "./AppsTableItem";
 import {useNavigate} from "react-router-dom";
 
-function AppsTable({apps, selectedItems, totalApps}) {
+/* AppsTable component */
+function AppsTable({
+  apps,
+  onToggleSelectAll,
+  onToggleSelect,
+  selectedItems,
+  totalApps,
+  handleClick,
+}) {
   const [selectAll, setSelectAll] = useState(false);
-  const [isCheck, setIsCheck] = useState([]);
-  const [list, setList] = useState([]);
+  const [checkedApps, setCheckedApps] = useState([]);
+
   const navigate = useNavigate();
+
+  /* set select all and checked apps */
   useEffect(() => {
-    setList(apps);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apps]);
+    setSelectAll(apps.length > 0 && selectedItems.length === apps.length);
+    setCheckedApps(selectedItems);
+  }, [apps, selectedItems]);
 
-  const handleSelectAll = () => {
-    setSelectAll(!selectAll);
-    setIsCheck(list.map((li) => li.id));
-    if (selectAll) {
-      setIsCheck([]);
-    }
-  };
-
-  const handleSelect = (e) => {
+  /* handle select */
+  function handleSelect(e) {
     const id = Number(e.target.id);
-    const checked = e.target.checked;
-    setSelectAll(false);
-    setIsCheck([...isCheck, id]);
-    if (!checked) {
-      setIsCheck(isCheck.filter((item) => item !== id));
-    }
-  };
+    onToggleSelect(id);
+  }
 
-  const handleClick = (e) => {
-    const id = Number(e.target.id);
-    navigate(`/admin/apps/${id}`);
-  };
-
-  useEffect(() => {
-    selectedItems(isCheck);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCheck]);
+  /* handle select all */
+  function handleSelectAll() {
+    onToggleSelectAll();
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl relative">
@@ -66,6 +59,7 @@ function AppsTable({apps, selectedItems, totalApps}) {
                         type="checkbox"
                         checked={selectAll}
                         onChange={handleSelectAll}
+                        disabled={apps.length === 0}
                       />
                     </label>
                   </div>
@@ -89,21 +83,32 @@ function AppsTable({apps, selectedItems, totalApps}) {
             </thead>
             {/* Table body */}
             <tbody className="text-sm divide-y divide-gray-100 dark:divide-gray-700/60">
-              {list.map((app) => {
-                return (
+              {apps.length > 0 ? (
+                apps.map((app) => (
                   <AppsTableItem
                     key={app.id}
                     id={app.id}
                     name={app.name}
                     icon={app.icon}
                     url={app.url}
+                    category={app.category}
                     description={app.description}
                     handleSelect={handleSelect}
-                    handleClick={handleClick}
-                    isChecked={isCheck.includes(app.id)}
+                    handleClick={() => handleClick(app.id)}
+                    isChecked={checkedApps.includes(app.id)}
+                    isAlternate={apps.indexOf(app) % 2 !== 0}
                   />
-                );
-              })}
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400"
+                  >
+                    <div className="text-center w-full">No apps found</div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

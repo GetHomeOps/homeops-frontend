@@ -1,15 +1,14 @@
 import React, {useEffect} from "react";
 
-function Toast2({children, className, type, open, setOpen}) {
+function Banner({children, className, type, open, setOpen}) {
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => {
         setOpen(false);
-      }, 4000); // Auto-close after 4 seconds
+      }, 2500); // Match the timeout in AppFormContainer
       return () => clearTimeout(timer);
     }
   }, [open, setOpen]);
-
   const typeIcon = (type) => {
     switch (type) {
       case "warning":
@@ -71,41 +70,46 @@ function Toast2({children, className, type, open, setOpen}) {
         return "bg-violet-100 text-gray-700";
     }
   };
-
   return (
-    <>
-      {open && (
-        <div className={className} role="alert">
-          <div
-            className={`inline-flex min-w-80 px-4 py-2 rounded-lg text-sm ${typeColor(
-              type
-            )}`}
-          >
-            <div className="flex w-full justify-between items-start">
-              <div className="flex">
-                {typeIcon(type)}
-                <div>{children}</div>
-              </div>
-              <button
-                className="opacity-60 hover:opacity-70 ml-3 mt-[3px]"
-                onClick={() => setOpen(false)}
-              >
-                <div className="sr-only">Close</div>
-                <svg
-                  className="fill-current"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                >
-                  <path d="M7.95 6.536l4.242-4.243a1 1 0 111.415 1.414L9.364 7.95l4.243 4.242a1 1 0 11-1.415 1.415L7.95 9.364l-4.243 4.243a1 1 0 01-1.414-1.415L6.536 7.95 2.293 3.707a1 1 0 011.414-1.414L7.95 6.536z" />
-                </svg>
-              </button>
-            </div>
+    <div
+      className={`${className} fixed top-17 right-0 pr-3 transition-opacity transform ${
+        open
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 -translate-y-0 pointer-events-none"
+      }`}
+      //   style={{
+      //     backgroundColor: type === "success" ? "green" : "red",
+      //     transition: "opacity 0.6s ease-in-out, transform 0.6s ease-in-out",
+      //   }}
+    >
+      <div
+        className={`inline-flex min-w-80 px-4 py-2 rounded-lg text-sm ${typeColor(
+          type
+        )}`}
+      >
+        <div className="flex w-full justify-between items-start">
+          <div className="flex">
+            {typeIcon(type)}
+            <div>{children}</div>
           </div>
+          <button
+            className="opacity-60 hover:opacity-70 ml-3 mt-[3px]"
+            onClick={() => setOpen(false)}
+          >
+            <div className="sr-only">Close</div>
+            <svg
+              className="fill-current"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+            >
+              <path d="M7.95 6.536l4.242-4.243a1 1 0 111.415 1.414L9.364 7.95l4.243 4.242a1 1 0 11-1.415 1.415L7.95 9.364l-4.243 4.243a1 1 0 01-1.414-1.415L6.536 7.95 2.293 3.707a1 1 0 011.414-1.414L7.95 6.536z" />
+            </svg>
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
 
-export default Toast2;
+export default Banner;

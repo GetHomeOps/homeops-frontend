@@ -90,6 +90,24 @@ class AppApi {
     return res.app;
   }
 
+  /* Create a new app */
+  static async addApp(data) {
+    let res = await this.request(`apps/`, data, 'POST');
+    return res.app;
+  }
+
+  /* Update an existing app */
+  static async updateApp(id, data) {
+    let res = await this.request(`apps/${id}`, data, 'PATCH');
+    return res.app;
+  }
+
+  /* Delete an app */
+  static async deleteApp(id) {
+    let res = await this.request(`apps/${id}`, {}, 'DELETE');
+    return res;
+  }
+
 }
 
 export default AppApi;

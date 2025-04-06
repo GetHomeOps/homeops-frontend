@@ -9,12 +9,11 @@ import Signup from "../auth/Signup";
 import Account from "../accountSettings/Account";
 import Databases from "../accountSettings/Databases";
 import PageNotFound from "../utility/PageNotFound";
-import Dashboard from "../Dashboard";
 import Main from "../Main";
-import AppList from "../adminSettings/AppsList";
-import App from "../adminSettings/App";
-import Categories from "../../pages/adminSettings/Categories";
-import AppCategory from "../adminSettings/AppCategory";
+import AppList from "../adminSettings/Apps/AppsList";
+import App from "../adminSettings/Apps/App";
+import Categories from "../adminSettings/Categories/Categories";
+import AppCategory from "../adminSettings/Categories/AppCategory";
 
 function RoutesList({login, signup, currentUser}) {
   return (

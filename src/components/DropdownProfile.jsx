@@ -1,7 +1,7 @@
 import React, {useState, useRef, useEffect, useContext} from "react";
 import {Link} from "react-router-dom";
 import Transition from "../utils/Transition";
-import UserContext from "../auth/UserContext";
+import UserContext from "../context/AppContext";
 
 import UserAvatar from "../images/user-avatar-32.png";
 

@@ -6,7 +6,7 @@ import SettingsSidebar from "../../partials/acountSettings/SettingsSidebar";
 import DatabasesPanel from "../../partials/acountSettings/DatabasesPanel";
 import {useTranslation} from "react-i18next";
 import {useContext} from "react";
-import UserContext from "../../auth/UserContext";
+import UserContext from "../../context/AppContext";
 
 function Databases() {
   const [sidebarOpen, setSidebarOpen] = useState(false);

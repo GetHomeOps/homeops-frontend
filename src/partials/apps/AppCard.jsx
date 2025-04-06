@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from "react";
-import {appIcons} from "../../assets/icons";
+import {icons} from "../../assets/icons";
 import styles from "./AppCard.module.css";
 
 function AppCard({title, iconId}) {
@@ -23,7 +23,7 @@ function AppCard({title, iconId}) {
             strokeLinejoin="round"
             className="icon icon-tabler icons-tabler-outline icon-tabler-building-warehouse"
           >
-            <path d={appIcons[iconId].svgPath} />
+            <path d={icons[iconId].svgPath} />
           </svg>
         </div>
         <h1 className="text-center text-gray-800 dark:text-gray-100 hover:text-gray-900 dark:hover:text-white mt-2">

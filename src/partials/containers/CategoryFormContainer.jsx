@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from "react";
 import {AlertCircle} from "lucide-react";
-import {appIcons} from "../../assets/icons";
+import {icons} from "../../assets/icons";
 
 function CategoryFormContainer({appData}) {
   const isEditing = !!appData;
