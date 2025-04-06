@@ -1,13 +1,12 @@
-mport React, {useState, useEffect, useContext} from "react";
+import React, {useReducer, useEffect, useContext} from "react";
 import {useNavigate, useParams} from "react-router-dom";
 import {AlertCircle} from "lucide-react";
-import {icons} from "../../assets/icons";
-import appContext from "../../context/AppContext";
-import AppApi from "../../api/api";
+import {icons} from "../../../assets/icons";
+import appContext from "../../../context/AppContext";
 import AppDropdownFilter from "./AppDropdownFilter";
-import Banner from "./Banner";
-import ModalBlank from "../../components/ModalBlank";
-
+import Banner from "../../../partials/containers/Banner";
+import ModalBlank from "../../../components/ModalBlank";
+import {useTranslation} from "react-i18next";
 const initialFormData = {
   name: "",
   category: "",
@@ -25,6 +24,49 @@ const categories = [
   {id: 2, name: "Productivity"},
 ];
 
+const initialState = {
+  formData: initialFormData,
+  errors: {},
+  isSubmitting: false,
+  appToEdit: null,
+  activeTab: 1,
+  isEditing: false,
+  bannerOpen: false,
+  dangerModalOpen: false,
+  currentAppIndex: 0,
+  bannerType: "success",
+  bannerAction: "",
+  bannerMessage: "",
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "SET_FORM_DATA":
+      return {...state, formData: {...state.formData, ...action.payload}};
+    case "SET_ERRORS":
+      return {...state, errors: action.payload};
+    case "SET_SUBMITTING":
+      return {...state, isSubmitting: action.payload};
+    case "SET_APP_TO_EDIT":
+      return {...state, appToEdit: action.payload, isEditing: !!action.payload};
+    case "SET_ACTIVE_TAB":
+      return {...state, activeTab: action.payload};
+    case "SET_BANNER":
+      return {
+        ...state,
+        bannerOpen: action.payload.open,
+        bannerType: action.payload.type,
+        bannerMessage: action.payload.message,
+      };
+    case "SET_DANGER_MODAL":
+      return {...state, dangerModalOpen: action.payload};
+    case "SET_CURRENT_APP_INDEX":
+      return {...state, currentAppIndex: action.payload};
+    default:
+      return state;
+  }
+}
+
 /** Form for Creating/Editing an app
  *
  * Props: None
@@ -40,119 +82,121 @@ const categories = [
  * App -> AppFormContainer
  **/
 function AppFormContainer() {
-  const {createApp, updateApp, deleteApp, apps} = useContext(appContext);
-  const [formData, setFormData] = useState(initialFormData);
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [appToEdit, setAppToEdit] = useState(null);
-  const [activeTab, setActiveTab] = useState(1);
-  const [isEditing, setIsEditing] = useState(false);
-  const [bannerOpen, setBannerOpen] = useState(false);
-  const [dangerModalOpen, setDangerModalOpen] = useState(false);
-  const [currentAppIndex, setCurrentAppIndex] = useState(0);
-  const [bannerType, setBannerType] = useState("success");
-  const [bannerAction, setBannerAction] = useState("");
-  const [bannerMessage, setBannerMessage] = useState("");
+  const {createApp, updateApp, deleteApp, apps, viewMode} =
+    useContext(appContext);
+  const [state, dispatch] = useReducer(reducer, initialState);
   const {id} = useParams();
   const navigate = useNavigate();
 
-  // Show banner after navigation
-  useEffect(() => {
-    if (bannerMessage && bannerType) {
-      setBannerOpen(true);
-      const timer = setTimeout(() => {
-        setBannerOpen(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [id, bannerMessage, bannerType]);
+  const {t, i18n} = useTranslation();
 
-  // Populate form data when in edit mode
-  useEffect(() => {
-    if (isEditing && appToEdit) {
-      setFormData({
-        name: appToEdit.name,
-        category: appToEdit.category,
-        url: appToEdit.url,
-        description: appToEdit.description,
-        icon: appToEdit.icon,
-      });
-    } else {
-      // Reset form data when creating new app
-      setFormData({
-        name: "",
-        category: "",
-        url: "",
-        description: "",
-        icon: "",
-      });
-    }
-  }, [isEditing, appToEdit]);
-
-  /* Fetch appToEdit base on URL's app id */
+  // Fetch appToEdit based on URL's app id
   useEffect(() => {
     async function fetchApp() {
       if (id && id !== "new") {
         try {
-          const app = await AppApi.getApp(id);
-          setAppToEdit(app);
-          setIsEditing(true);
+          const existingApp = apps.find((app) => Number(app.id) === Number(id));
+          if (existingApp) {
+            dispatch({type: "SET_APP_TO_EDIT", payload: existingApp});
+            // Only clear banner if it's not a success message from app creation
+            if (
+              state.bannerType !== "success" ||
+              !state.bannerMessage.includes(t("appCreatedSuccessfullyMessage"))
+            ) {
+              dispatch({
+                type: "SET_BANNER",
+                payload: {
+                  open: false,
+                  type: state.bannerType,
+                  message: state.bannerMessage,
+                },
+              });
+            }
+          } else {
+            // navigate("/admin/apps");
+            throw new Error(t("appNotFoundErrorMessage"));
+          }
         } catch (err) {
-          setBannerType("error");
-          setBannerMessage(`Error fetching app: ${err}`);
-          setBannerOpen(true);
-          setTimeout(() => {
-            setBannerOpen(false);
-          }, 2000);
-          navigate("/admin/apps");
+          dispatch({
+            type: "SET_BANNER",
+            payload: {
+              open: true,
+              type: "error",
+              message: `Error finding app: ${err}`,
+            },
+          });
+          // navigate("/admin/apps");
         }
       } else {
-        setAppToEdit(null);
+        dispatch({type: "SET_APP_TO_EDIT", payload: null});
       }
     }
     fetchApp();
-  }, [id, navigate]);
+  }, [id, apps]);
+
+  // Show banner and handle timeout
+  useEffect(() => {
+    if (state.bannerOpen && state.bannerMessage) {
+      const timer = setTimeout(() => {
+        dispatch({
+          type: "SET_BANNER",
+          payload: {
+            open: false,
+            type: state.bannerType,
+            message: state.bannerMessage,
+          },
+        });
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [state.bannerOpen, state.bannerMessage]);
+
+  // Populate form data when in edit mode
+  useEffect(() => {
+    if (state.isEditing && state.appToEdit) {
+      dispatch({
+        type: "SET_FORM_DATA",
+        payload: {
+          name: state.appToEdit.name,
+          category: state.appToEdit.category,
+          url: state.appToEdit.url,
+          description: state.appToEdit.description,
+          icon: state.appToEdit.icon,
+        },
+      });
+    } else {
+      dispatch({type: "SET_FORM_DATA", payload: initialFormData});
+    }
+  }, [state.isEditing, state.appToEdit]);
 
   // Update current app index when appToEdit changes
   useEffect(() => {
-    if (appToEdit && apps.length > 0) {
+    if (state.appToEdit && apps.length > 0) {
       const index = apps.findIndex(
-        (app) => Number(app.id) === Number(appToEdit.id)
+        (app) => Number(app.id) === Number(state.appToEdit.id)
       );
-      setCurrentAppIndex(index);
+      dispatch({type: "SET_CURRENT_APP_INDEX", payload: index});
     }
-  }, [appToEdit, apps]);
+  }, [state.appToEdit, apps]);
 
   /* Handles form change (except icon) */
   const handleChange = (e) => {
     const {id, value} = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
+    dispatch({type: "SET_FORM_DATA", payload: {[id]: value}});
 
     // Clear error when field is being edited
-    if (errors[id]) {
-      setErrors((prev) => ({
-        ...prev,
-        [id]: null,
-      }));
+    if (state.errors[id]) {
+      dispatch({type: "SET_ERRORS", payload: {...state.errors, [id]: null}});
     }
   };
 
   /* Handles Icon change */
   function handleIconSelection(evt) {
     const selectedIcon = evt.target.value;
-    setFormData((prevData) => ({
-      ...prevData,
-      icon: selectedIcon,
-    }));
+    dispatch({type: "SET_FORM_DATA", payload: {icon: selectedIcon}});
 
-    if (errors.icon) {
-      setErrors((prev) => ({
-        ...prev,
-        icon: null,
-      }));
+    if (state.errors.icon) {
+      dispatch({type: "SET_ERRORS", payload: {...state.errors, icon: null}});
     }
   }
 
@@ -163,39 +207,46 @@ function AppFormContainer() {
     if (!validateForm()) return;
 
     const appData = {
-      name: formData.name,
-      icon: formData.icon,
-      url: formData.url,
-      category: Number(formData.category),
-      description: formData.description,
+      name: state.formData.name,
+      icon: state.formData.icon,
+      url: state.formData.url,
+      category: Number(state.formData.category),
+      description: state.formData.description,
     };
 
-    setIsSubmitting(true);
+    dispatch({type: "SET_SUBMITTING", payload: true});
 
     try {
       const res = await createApp(appData);
 
       if (res && res.id) {
+        // Update state with new app
         onCreate(res);
-        setBannerType("success");
-        setBannerMessage("App created successfully");
-        setBannerSuccessOpen(true);
 
-        setTimeout(() => {
-          setBannerSuccessOpen(false);
-        }, 3000);
+        // Navigate to the new app
+        navigate(`/admin/apps/${res.id}${viewMode ? `?view=${viewMode}` : ""}`);
 
-        navigate(`/admin/apps/${res.id}`);
+        // Show success banner
+        dispatch({
+          type: "SET_BANNER",
+          payload: {
+            open: true,
+            type: "success",
+            message: t("appCreatedSuccessfullyMessage"),
+          },
+        });
       }
     } catch (err) {
-      setBannerType("error");
-      setBannerMessage(`Error creating app: ${err}`);
-      setBannerOpen(true);
-      setTimeout(() => {
-        setBannerOpen(false);
-      }, 2000);
+      dispatch({
+        type: "SET_BANNER",
+        payload: {
+          open: true,
+          type: "error",
+          message: `Error creating app: ${err}`,
+        },
+      });
     } finally {
-      setIsSubmitting(false);
+      dispatch({type: "SET_SUBMITTING", payload: false});
     }
   }
 
@@ -206,35 +257,47 @@ function AppFormContainer() {
     if (!validateForm()) return;
 
     const appData = {
-      name: formData.name,
-      icon: formData.icon,
-      url: formData.url,
-      category: Number(formData.category),
-      description: formData.description,
+      name: state.formData.name,
+      icon: state.formData.icon,
+      url: state.formData.url,
+      category: Number(state.formData.category),
+      description: state.formData.description,
     };
 
-    setIsSubmitting(true);
+    dispatch({type: "SET_SUBMITTING", payload: true});
 
     try {
       const res = await updateApp(id, appData);
       if (res) {
-        onCreate(appData);
-        setBannerType("success");
-        setBannerMessage("App updated successfully");
-        setBannerOpen(true);
+        // Update the appToEdit with the new data while maintaining the id
+        dispatch({
+          type: "SET_APP_TO_EDIT",
+          payload: {...appData, id: Number(id)},
+        });
 
+        // Show success banner with a slight delay to ensure it's visible
         setTimeout(() => {
-          setBannerOpen(false);
-        }, 2000);
+          dispatch({
+            type: "SET_BANNER",
+            payload: {
+              open: true,
+              type: "success",
+              message: t("appUpdatedSuccessfullyMessage"),
+            },
+          });
+        }, 100);
       }
     } catch (err) {
-      setBannerType("error");
-      setBannerMessage(
-        `An error occurred while updating the app. Please try again. Error: ${err}`
-      );
-      setBannerOpen(true);
+      dispatch({
+        type: "SET_BANNER",
+        payload: {
+          open: true,
+          type: "error",
+          message: `${t("updateErrorMessage")} ${err}`,
+        },
+      });
     } finally {
-      setIsSubmitting(false);
+      dispatch({type: "SET_SUBMITTING", payload: false});
     }
   }
 
@@ -242,150 +305,194 @@ function AppFormContainer() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "App name is required";
+    if (!state.formData.name.trim()) {
+      newErrors.name = t("appNameValidationErrorMessage");
     }
 
-    if (!formData.category) {
-      newErrors.category = "Please select a category";
+    if (!state.formData.category) {
+      newErrors.category = t("categoryValidationErrorMessage");
     }
 
-    if (!formData.url) {
-      newErrors.url = "URL is required";
+    if (!state.formData.url) {
+      newErrors.url = t("urlValidationErrorMessage");
     }
 
-    if (!formData.description.trim()) {
-      newErrors.description = "Description is required";
+    if (!state.formData.description.trim()) {
+      newErrors.description = t("descriptionValidationErrorMessage");
     }
 
     // Only require icon if creating a new app
-    if (formData.icon === "") {
-      newErrors.icon = "App icon is required";
+    if (state.formData.icon === "") {
+      newErrors.icon = t("iconValidationErrorMessage");
     }
 
-    setErrors(newErrors);
+    dispatch({type: "SET_ERRORS", payload: newErrors});
     return Object.keys(newErrors).length === 0;
   };
 
   /* Navigates to previous page */
   function handleBackClick() {
-    navigate("/admin/apps");
+    navigate(`/admin/apps${viewMode ? `?view=${viewMode}` : ""}`);
   }
 
   /* If editing an app -> return the app's name
   If new -> return 'New App' */
   function getPageTitle() {
-    if (appToEdit) {
-      return `${appToEdit.name}`;
+    if (state.appToEdit) {
+      return `${state.appToEdit.name}`;
     }
-    return "New App";
+    return t("newApp");
   }
 
   /* Resets appToEdit upon selecting new app button */
   function onCreate(newApp) {
-    setAppToEdit(newApp);
-    setIsEditing(true);
-    setBannerOpen(true);
+    dispatch({type: "SET_APP_TO_EDIT", payload: newApp});
   }
 
   /* Changes active tab */
   function handleTabChange(tabId) {
-    setActiveTab(tabId);
+    dispatch({type: "SET_ACTIVE_TAB", payload: tabId});
   }
 
   /* Handles New App button click */
   function handleNewApp() {
-    setAppToEdit(null);
-    setFormData(initialFormData);
-    setIsEditing(false);
-    setErrors({});
+    dispatch({type: "SET_APP_TO_EDIT", payload: null});
+    dispatch({type: "SET_FORM_DATA", payload: initialFormData});
+    dispatch({type: "SET_ERRORS", payload: {}});
   }
 
   /* Handles delete button */
   function handleDelete() {
-    setDangerModalOpen(true);
+    dispatch({type: "SET_DANGER_MODAL", payload: true});
+    // Close dropdown if it's open
   }
 
   /* Handles delete confirmation on modal */
   async function confirmDelete() {
     try {
       // Close modal immediately when Accept is clicked
-      setDangerModalOpen(false);
+      dispatch({type: "SET_DANGER_MODAL", payload: false});
 
-      // Find the next app to navigate to before deletion
+      // Find the current app index
       const appIndex = apps.findIndex((app) => app.id === Number(id));
-      const nextApp = apps[appIndex + 1];
 
       // Delete the app
       await deleteApp(id);
 
-      // Navigate to next app or list
-      if (nextApp) {
-        navigate(`/admin/apps/${nextApp.id}`);
+      // Navigate based on remaining apps
+      if (apps.length <= 1) {
+        // If this was the last app, go to apps list
+        navigate(`/admin/apps${viewMode ? `?view=${viewMode}` : ""}`);
+      } else if (appIndex === apps.length - 1) {
+        // If this was the last app in the list, go to previous app
+        navigate(
+          `/admin/apps/${apps[appIndex - 1].id}${
+            viewMode ? `?view=${viewMode}` : ""
+          }`
+        );
       } else {
-        navigate("/admin/apps");
+        // Otherwise go to next app
+        navigate(
+          `/admin/apps/${apps[appIndex + 1].id}${
+            viewMode ? `?view=${viewMode}` : ""
+          }`
+        );
       }
 
-      // Show success banner after navigation
-      setBannerType("success");
-      setBannerAction("delete");
-      setBannerMessage("App deleted successfully");
-      setBannerOpen(true);
+      // Then show banner
       setTimeout(() => {
-        setBannerOpen(false);
-      }, 2000);
+        dispatch({
+          type: "SET_BANNER",
+          payload: {
+            open: true,
+            type: "success",
+            message: t("appDeletedSuccessfullyMessage"),
+          },
+        });
+      }, 100);
     } catch (error) {
-      setBannerType("error");
-      setBannerMessage(`Error deleting app: ${error}`);
-      setBannerOpen(true);
+      dispatch({
+        type: "SET_BANNER",
+        payload: {
+          open: true,
+          type: "error",
+          message: `Error deleting app: ${error}`,
+        },
+      });
     }
   }
 
   /* Handles app duplication */
   async function duplicateApp() {
-    if (!appToEdit) return;
+    if (!state.appToEdit) return;
+
+    // Close dropdown if it's open
+    const dropdown = document.querySelector('[data-dropdown-open="true"]');
+    if (dropdown) {
+      dropdown.click();
+    }
 
     const appData = {
-      name: `${appToEdit.name} (Copy)`,
-      icon: appToEdit.icon,
-      url: `${appToEdit.url}-copy`,
-      category: appToEdit.category,
-      description: appToEdit.description,
+      name: `${state.appToEdit.name} (Copy)`,
+      icon: state.appToEdit.icon,
+      url: `${state.appToEdit.url}-copy`,
+      category: state.appToEdit.category,
+      description: state.appToEdit.description,
     };
 
-    setIsSubmitting(true);
+    dispatch({type: "SET_SUBMITTING", payload: true});
 
     try {
       const res = await createApp(appData);
 
       if (res && res.id) {
-        setBannerType("success");
-        setBannerMessage("App duplicated successfully");
-        navigate(`/admin/apps/${res.id}`);
+        // Navigate first
+        navigate(`/admin/apps/${res.id}${viewMode ? `?view=${viewMode}` : ""}`);
+
+        // Then show banner
+        setTimeout(() => {
+          dispatch({
+            type: "SET_BANNER",
+            payload: {
+              open: true,
+              type: "success",
+              message: t("appDuplicatedSuccessfullyMessage"),
+            },
+          });
+        }, 100);
       }
     } catch (err) {
-      setBannerType("error");
-      setBannerMessage(
-        `An error occurred while duplicating the app. Please try again. Error: ${err}`
-      );
-      setBannerOpen(true);
+      dispatch({
+        type: "SET_BANNER",
+        payload: {
+          open: true,
+          type: "error",
+          message: `${t("appDuplicationErrorMessage")} ${err} `,
+        },
+      });
     } finally {
-      setIsSubmitting(false);
+      dispatch({type: "SET_SUBMITTING", payload: false});
     }
   }
 
   // Navigation handlers
   const handlePrevApp = () => {
-    if (currentAppIndex > 0) {
-      const prevApp = apps[currentAppIndex - 1];
-      navigate(`/admin/apps/${prevApp.id}`);
+    if (state.currentAppIndex > 0) {
+      const prevApp = apps[state.currentAppIndex - 1];
+      navigate(
+        `/admin/apps/${prevApp.id}${viewMode ? `?view=${viewMode}` : ""}`
+      );
     }
   };
 
   const handleNextApp = () => {
-    if (currentAppIndex < apps.length - 1) {
-      const nextApp = apps[currentAppIndex + 1];
-      navigate(`/admin/apps/${nextApp.id}`);
+    if (state.currentAppIndex < apps.length - 1) {
+      const nextApp = apps[state.currentAppIndex + 1];
+      navigate(
+        `/admin/apps/${nextApp.id}${viewMode ? `?view=${viewMode}` : ""}`
+      );
+    } else {
+      navigate(`/admin/apps${viewMode ? `?view=${viewMode}` : ""}`);
     }
   };
 
@@ -393,22 +500,31 @@ function AppFormContainer() {
     <div className="relative">
       <div className="fixed top-18 right-0 w-auto sm:w-full z-50">
         <Banner
-          type={bannerType}
-          open={bannerOpen}
-          setOpen={setBannerOpen}
-          className={`transition-opacity duration-600 ${
-            bannerOpen ? "opacity-100" : "opacity-0"
-          }`}
+          type={state.bannerType}
+          open={state.bannerOpen}
+          setOpen={(open) =>
+            dispatch({
+              type: "SET_BANNER",
+              payload: {
+                open,
+                type: state.bannerType,
+                message: state.bannerMessage,
+              },
+            })
+          }
+          className="transition-opacity duration-300"
         >
-          {bannerMessage}
+          {state.bannerMessage}
         </Banner>
       </div>
 
       <div className="m-1.5">
         <ModalBlank
           id="danger-modal"
-          modalOpen={dangerModalOpen}
-          setModalOpen={setDangerModalOpen}
+          modalOpen={state.dangerModalOpen}
+          setModalOpen={(open) =>
+            dispatch({type: "SET_DANGER_MODAL", payload: open})
+          }
         >
           <div className="p-5 flex space-x-4">
             {/* Icon */}
@@ -427,16 +543,15 @@ function AppFormContainer() {
               {/* Modal header */}
               <div className="mb-2">
                 <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                  {appToEdit ? `Delete ${appToEdit.name}?` : "Delete App?"}
+                  {state.appToEdit
+                    ? `Delete ${state.appToEdit.name}?`
+                    : "Delete App?"}
                 </div>
               </div>
               {/* Modal content */}
               <div className="text-sm mb-10">
                 <div className="space-y-2">
-                  <p>
-                    Are you sure you want to delete this app? This action cannot
-                    be undone.
-                  </p>
+                  <p>{t("deleteBannerMessage")}</p>
                 </div>
               </div>
               {/* Modal footer */}
@@ -445,16 +560,16 @@ function AppFormContainer() {
                   className="btn-sm border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setDangerModalOpen(false);
+                    dispatch({type: "SET_DANGER_MODAL", payload: false});
                   }}
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   className="btn-sm bg-red-500 hover:bg-red-600 text-white"
                   onClick={confirmDelete}
                 >
-                  Accept
+                  {t("accept")}
                 </button>
               </div>
             </div>
@@ -478,12 +593,12 @@ function AppFormContainer() {
                 >
                   <path d="M9.4 13.4l1.4-1.4-4-4 4-4-1.4-1.4L4 8z"></path>
                 </svg>
-                <span>Back to Apps</span>
+                <span>{t("backToApps")}</span>
               </button>
             </div>
 
             <div className="flex">
-              {isEditing && (
+              {state.isEditing && (
                 <div className="m-1.5">
                   {/* Filter button */}
                   <AppDropdownFilter
@@ -499,7 +614,7 @@ function AppFormContainer() {
                   className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300"
                   onClick={handleNewApp}
                 >
-                  New
+                  {t("new")}
                 </button>
               </div>
             </div>
@@ -510,20 +625,20 @@ function AppFormContainer() {
             </h1>
 
             <div className="flex items-center pr-1">
-              {isEditing && apps.length > 1 && (
+              {state.isEditing && apps.length > 1 && (
                 <>
                   <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">
-                    {currentAppIndex + 1} / {apps.length}
+                    {state.currentAppIndex + 1} / {apps.length}
                   </span>
                   <button
                     className={`btn shadow-none p-1`}
                     title="Previous"
                     onClick={handlePrevApp}
-                    disabled={currentAppIndex <= 0}
+                    disabled={state.currentAppIndex <= 0}
                   >
                     <svg
                       className={`fill-current shrink-0 ${
-                        currentAppIndex <= 0
+                        state.currentAppIndex <= 0
                           ? "text-gray-200 dark:text-gray-700"
                           : "text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-600"
                       }`}
@@ -539,11 +654,11 @@ function AppFormContainer() {
                     className={`btn shadow-none p-1`}
                     title="Next"
                     onClick={handleNextApp}
-                    disabled={currentAppIndex >= apps.length - 1}
+                    disabled={state.currentAppIndex >= apps.length - 1}
                   >
                     <svg
                       className={`fill-current shrink-0 ${
-                        currentAppIndex >= apps.length - 1
+                        state.currentAppIndex >= apps.length - 1
                           ? "text-gray-200 dark:text-gray-700"
                           : "text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-600"
                       }`}
@@ -574,7 +689,7 @@ function AppFormContainer() {
                   >
                     <button
                       className={`pb-3 whitespace-nowrap border-b-2 ${
-                        activeTab === tab.id
+                        state.activeTab === tab.id
                           ? "text-violet-500 border-violet-500"
                           : "text-gray-500 border-transparent"
                       }`}
@@ -590,8 +705,8 @@ function AppFormContainer() {
         </div>
 
         <div className="px-4 sm:px-6 lg:px-8 pb-8 w-full max-w-[96rem] mx-auto">
-          <form onSubmit={isEditing ? handleUpdate : handleSubmit}>
-            {activeTab === 1 && (
+          <form onSubmit={state.isEditing ? handleUpdate : handleSubmit}>
+            {state.activeTab === 1 && (
               <div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* App Name */}
@@ -600,24 +715,24 @@ function AppFormContainer() {
                       className="block text-sm font-medium mb-1"
                       htmlFor="name"
                     >
-                      App Name <span className="text-red-500">*</span>
+                      {t("appName")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="name"
                       className={`form-input w-full ${
-                        errors.name
+                        state.errors.name
                           ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                           : ""
                       }`}
                       type="text"
-                      value={formData.name}
+                      value={state.formData.name}
                       onChange={handleChange}
-                      placeholder="Enter app name"
+                      placeholder={t("appNamePlaceholder")}
                     />
-                    {errors.name && (
+                    {state.errors.name && (
                       <div className="mt-1 flex items-center text-sm text-red-500">
                         <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{errors.name}</span>
+                        <span>{state.errors.name}</span>
                       </div>
                     )}
                   </div>
@@ -628,21 +743,21 @@ function AppFormContainer() {
                       className="block text-sm font-medium mb-1"
                       htmlFor="selectedIcon"
                     >
-                      Icon <span className="text-red-500">*</span>
+                      {t("icon")} <span className="text-red-500">*</span>
                     </label>
                     <div className="flex items-center space-x-3">
                       {/* Icon Dropdown */}
                       <select
                         id="icon"
                         className={`form-select flex-1 ${
-                          errors.icon
+                          state.errors.icon
                             ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                             : ""
                         }`}
-                        value={formData.icon}
+                        value={state.formData.icon}
                         onChange={handleIconSelection}
                       >
-                        <option value="">Select an icon</option>
+                        <option value="">{t("selectAnIcon")}</option>
                         {icons.map((icon, index) => (
                           <option key={index} value={index}>
                             {icon.label}
@@ -652,7 +767,7 @@ function AppFormContainer() {
 
                       {/* Icon Preview */}
                       <div className="h-10 w-10 min-w-10 flex items-center justify-center rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
-                        {formData.icon ? (
+                        {state.formData.icon ? (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -663,19 +778,19 @@ function AppFormContainer() {
                             strokeLinejoin="round"
                             className="w-6 h-6 text-gray-600 dark:text-gray-300"
                           >
-                            <path d={icons[formData.icon].svgPath} />
+                            <path d={icons[state.formData.icon].svgPath} />
                           </svg>
                         ) : (
                           <span className="text-gray-400 dark:text-gray-500 text-xs text-center">
-                            No icon
+                            {t("noIcon")}
                           </span>
                         )}
                       </div>
                     </div>
-                    {errors.icon && (
+                    {state.errors.icon && (
                       <div className="mt-1 flex items-center text-sm text-red-500">
                         <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{errors.icon}</span>
+                        <span>{state.errors.icon}</span>
                       </div>
                     )}
                   </div>
@@ -686,24 +801,24 @@ function AppFormContainer() {
                       className="block text-sm font-medium mb-1"
                       htmlFor="url"
                     >
-                      App URL <span className="text-red-500">*</span>
+                      {t("appURL")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="url"
                       className={`form-input w-full ${
-                        errors.url
+                        state.errors.url
                           ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                           : ""
                       }`}
                       type="text"
-                      value={formData.url}
+                      value={state.formData.url}
                       onChange={handleChange}
                       placeholder="/url"
                     />
-                    {errors.url && (
+                    {state.errors.url && (
                       <div className="mt-1 flex items-center text-sm text-red-500">
                         <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{errors.url}</span>
+                        <span>{state.errors.url}</span>
                       </div>
                     )}
                   </div>
@@ -714,19 +829,19 @@ function AppFormContainer() {
                       className="block text-sm font-medium mb-1"
                       htmlFor="category"
                     >
-                      Category <span className="text-red-500">*</span>
+                      {t("category")} <span className="text-red-500">*</span>
                     </label>
                     <select
                       id="category"
                       className={`form-select w-full ${
-                        errors.category
+                        state.errors.category
                           ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                           : ""
                       }`}
-                      value={formData.category}
+                      value={state.formData.category}
                       onChange={handleChange}
                     >
-                      <option value="">Select a category</option>
+                      <option value="">{t("selectACategory")}</option>
                       {categories.map((category) => (
                         <option
                           key={category.id}
@@ -737,10 +852,10 @@ function AppFormContainer() {
                         </option>
                       ))}
                     </select>
-                    {errors.category && (
+                    {state.errors.category && (
                       <div className="mt-1 flex items-center text-sm text-red-500">
                         <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{errors.category}</span>
+                        <span>{state.errors.category}</span>
                       </div>
                     )}
                   </div>
@@ -751,23 +866,23 @@ function AppFormContainer() {
                       className="block text-sm font-medium mb-1"
                       htmlFor="description"
                     >
-                      Description <span className="text-red-500">*</span>
+                      {t("description")} <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       id="description"
                       className={`form-textarea w-full h-24 ${
-                        errors.description
+                        state.errors.description
                           ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                           : ""
                       }`}
-                      value={formData.description}
+                      value={state.formData.description}
                       onChange={handleChange}
-                      placeholder="Describe what this app does"
+                      placeholder={t("appDescriptionPlaceholder")}
                     />
-                    {errors.description && (
+                    {state.errors.description && (
                       <div className="mt-1 flex items-center text-sm text-red-500">
                         <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{errors.description}</span>
+                        <span>{state.errors.description}</span>
                       </div>
                     )}
                   </div>
@@ -780,14 +895,14 @@ function AppFormContainer() {
                     className="btn border-gray-300 text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600"
                     onClick={handleBackClick}
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     type="submit"
                     className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                    disabled={isSubmitting}
+                    disabled={state.isSubmitting}
                   >
-                    {isSubmitting ? (
+                    {state.isSubmitting ? (
                       <>
                         <svg
                           className="animate-spin -ml-1 mr-2 h-4 w-4 text-white dark:text-gray-800"
@@ -809,12 +924,12 @@ function AppFormContainer() {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                           ></path>
                         </svg>
-                        Saving...
+                        {t("saving")}
                       </>
-                    ) : isEditing ? (
-                      "Update"
+                    ) : state.isEditing ? (
+                      t("update")
                     ) : (
-                      "Save"
+                      t("save")
                     )}
                   </button>
                 </div>

@@ -1,6 +1,5 @@
 import React, {useReducer, useEffect, useContext, useMemo} from "react";
 import {useNavigate, useLocation} from "react-router-dom";
-import {icons} from "../../../assets/icons";
 
 import Sidebar from "../../../partials/Sidebar";
 import Header from "../../../partials/Header";
@@ -11,6 +10,8 @@ import appContext from "../../../context/AppContext";
 import CollapsibleAppsTable from "../CollapsibleAppsTable";
 import ModalBlank from "../../../components/ModalBlank";
 import Banner from "../../../partials/containers/Banner";
+
+import {useTranslation} from "react-i18next";
 
 const initialState = {
   appsList: [],
@@ -79,6 +80,8 @@ function AppsList() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const {t, i18n} = useTranslation();
 
   // Initialize view mode from URL parameters
   useEffect(() => {
@@ -440,9 +443,9 @@ function AppsList() {
                 <div className="text-sm mb-10">
                   <div className="space-y-2">
                     <p>
-                      Are you sure you want to delete the selected app
-                      {state.selectedItems.length !== 1 ? "s" : ""}? This action
-                      cannot be undone.
+                      {t("appDeleteConfirmationMessage")}
+                      {state.selectedItems.length !== 1 ? "s" : ""}?{" "}
+                      {t("actionCantBeUndone")}
                     </p>
                   </div>
                 </div>
@@ -477,7 +480,7 @@ function AppsList() {
               {/* Left: Title */}
               <div className="mb-4 sm:mb-0">
                 <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
-                  Applications
+                  {t("applications")}
                 </h1>
               </div>
 
@@ -505,7 +508,7 @@ function AppsList() {
                   >
                     <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
                   </svg>
-                  <span className="max-xs:sr-only">Add App</span>
+                  <span className="max-xs:sr-only">{t("addApp")}</span>
                 </button>
               </div>
             </div>
@@ -517,7 +520,7 @@ function AppsList() {
                   <input
                     type="text"
                     className="form-input w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 focus:border-gray-300 dark:focus:border-gray-600 rounded-lg shadow-sm "
-                    placeholder="Search apps by name or category..."
+                    placeholder={t("searchAppsPlaceholder")}
                     value={state.searchTerm}
                     onChange={(e) =>
                       dispatch({
@@ -544,8 +547,8 @@ function AppsList() {
                   value={viewMode}
                   onChange={(e) => setViewMode(e.target.value)}
                 >
-                  <option value="filter">List View</option>
-                  <option value="group">Group by Category</option>
+                  <option value="filter">{t("listView")}</option>
+                  <option value="group">{t("groupByCategory")}</option>
                 </select>
               </div>
             </div>

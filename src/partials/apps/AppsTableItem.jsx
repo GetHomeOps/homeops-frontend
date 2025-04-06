@@ -24,7 +24,7 @@ function AppsTableItem({
     <tr
       className={`${
         isAlternate
-          ? "bg-gray-50/50 dark:bg-gray-700/20"
+          ? "bg-gray-50/80 dark:bg-gray-700/20"
           : "bg-white dark:bg-gray-700/10"
       } hover:bg-gray-100 dark:hover:bg-gray-700/50`}
     >

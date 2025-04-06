@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {icons} from "../../assets/icons";
-import appContext from "../../context/AppContext";
+import {useTranslation} from "react-i18next";
 
 function CollapsibleAppsTable({
   filteredApps,
@@ -11,6 +11,8 @@ function CollapsibleAppsTable({
   setExpandedCategories,
 }) {
   const navigate = useNavigate();
+
+  const {t, i18n} = useTranslation();
 
   // Categories for the dropdown
   const categories = [
@@ -104,7 +106,7 @@ function CollapsibleAppsTable({
         <div className="overflow-x-auto">
           <table className="table-auto w-full dark:text-gray-300">
             {/* Table header */}
-            <thead className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40 border-t border-b border-gray-100 dark:border-gray-700/60">
+            <thead className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 border-t border-b border-gray-100 dark:border-gray-700/60">
               <tr>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap w-px">
                   <div className="flex items-center">
@@ -121,19 +123,21 @@ function CollapsibleAppsTable({
                   </div>
                 </th>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
-                  <div className="font-semibold text-left">Name</div>
+                  <div className="font-semibold text-left">{t("name")}</div>
                 </th>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
-                  <div className="font-semibold text-left">Icon</div>
+                  <div className="font-semibold text-left">{t("icon")}</div>
                 </th>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
-                  <div className="font-semibold text-left">URL</div>
+                  <div className="font-semibold text-left">{t("URL")}</div>
                 </th>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
-                  <div className="font-semibold text-left">Category</div>
+                  <div className="font-semibold text-left">{t("category")}</div>
                 </th>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
-                  <div className="font-semibold text-left">Description</div>
+                  <div className="font-semibold text-left">
+                    {t("description")}
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -142,7 +146,7 @@ function CollapsibleAppsTable({
               {Object.entries(sortedGroupedApps).map(([category, apps]) => (
                 <React.Fragment key={category}>
                   {/* Category header */}
-                  <tr className="bg-gray-200/80 dark:bg-gray-900/20 cursor-pointer hover:bg-gray-300/80 dark:hover:bg-gray-800/70">
+                  <tr className="bg-gray-200/80 dark:bg-gray-900/30 cursor-pointer hover:bg-gray-300/80 dark:hover:bg-gray-800/70">
                     <td
                       colSpan="6"
                       className="px-2 first:pl-5 last:pr-5 py-3"
@@ -178,7 +182,7 @@ function CollapsibleAppsTable({
                         className={`${
                           apps.indexOf(app) % 2 === 0
                             ? "bg-white dark:bg-gray-700/20"
-                            : "bg-gray-50/50 dark:bg-gray-700/10"
+                            : "bg-gray-50/80 dark:bg-gray-700/10"
                         } hover:bg-gray-100 dark:hover:bg-gray-700/50`}
                       >
                         <td className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap w-px">
@@ -253,7 +257,7 @@ function CollapsibleAppsTable({
                     colSpan="6"
                     className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400"
                   >
-                    <div className="text-center w-full">No apps found</div>
+                    <div className="text-center w-full">{t("noAppsFound")}</div>
                   </td>
                 </tr>
               )}

@@ -1,6 +1,5 @@
 import React, {useState} from "react";
 
-import Sidebar from "../../partials/Sidebar";
 import Header from "../../partials/Header";
 import SettingsSidebar from "../../partials/acountSettings/SettingsSidebar";
 import AccountPanel from "../../partials/acountSettings/AccountPanel";

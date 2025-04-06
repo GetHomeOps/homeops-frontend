@@ -1,4 +1,5 @@
 import React from "react";
+import {useTranslation} from "react-i18next";
 
 function PaginationClassic({
   currentPage,
@@ -20,6 +21,8 @@ function PaginationClassic({
     currentPage * itemsPerPage > totalItems
       ? totalItems
       : currentPage * itemsPerPage;
+
+  const {t, i18n} = useTranslation();
 
   // Handle items per page change
   function handleItemsPerPageChange(value) {
@@ -46,7 +49,7 @@ function PaginationClassic({
               }
               disabled={currentPage === 1}
             >
-              &lt;- Previous
+              &lt;- {t("previous")}
             </button>
           </li>
           {/* Next Buton */}
@@ -60,7 +63,7 @@ function PaginationClassic({
               }
               disabled={currentPage === totalPages}
             >
-              Next -&gt;
+              {t("next")} -&gt;
             </button>
           </li>
         </ul>
@@ -69,7 +72,7 @@ function PaginationClassic({
       {/* Items per page Selector */}
       <div className="flex items-center justify-center mb-4 sm:mb-0">
         <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">
-          Show
+          {t("show")}
         </span>
         <select
           className="form-select w-18 py-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 rounded-lg shadow-sm text-sm text-gray-500 dark:text-gray-400"
@@ -82,25 +85,25 @@ function PaginationClassic({
           <option value="50">50</option>
         </select>
         <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-          results
+          {t("results")}
         </span>
       </div>
 
       {/* Show range of results */}
       <div className="text-sm text-gray-500 text-center sm:text-left">
-        Showing{" "}
+        {t("showing")}{" "}
         <span className="font-medium text-gray-600 dark:text-gray-300">
           {startItem}
         </span>{" "}
-        to{" "}
+        {t("to")}{" "}
         <span className="font-medium text-gray-600 dark:text-gray-300">
           {endItem}
         </span>{" "}
-        of{" "}
+        {t("of")}{" "}
         <span className="font-medium text-gray-600 dark:text-gray-300">
           {totalItems}
         </span>{" "}
-        results
+        {t("results")}
       </div>
     </div>
   );

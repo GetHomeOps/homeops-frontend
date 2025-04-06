@@ -1,11 +1,14 @@
 import React, {useState, useRef, useEffect} from "react";
-import Transition from "../../utils/Transition";
+import Transition from "../../../utils/Transition";
+import {useTranslation} from "react-i18next";
 
 function AppDropdownFilter({align, onDelete, onDuplicate}) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const trigger = useRef(null);
   const dropdown = useRef(null);
+
+  const {t, i18n} = useTranslation();
 
   // close on click outside
   useEffect(() => {
