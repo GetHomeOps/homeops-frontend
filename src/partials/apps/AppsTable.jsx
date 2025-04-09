@@ -18,8 +18,11 @@ function AppsTable({
 
   /* set select all and checked apps */
   useEffect(() => {
-    setSelectAll(apps.length > 0 && selectedItems.length === apps.length);
-    setCheckedApps(selectedItems);
+    const visibleAppsSelected =
+      apps.length > 0 && apps.every((app) => selectedItems.includes(app.id));
+
+    setSelectAll(visibleAppsSelected);
+    // setCheckedApps(selectedItems);
   }, [apps, selectedItems]);
 
   /* handle select */
@@ -48,7 +51,7 @@ function AppsTable({
         <div className="overflow-x-auto">
           <table className="table-auto w-full dark:text-gray-300">
             {/* Table header */}
-            <thead className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 border-t border-b border-gray-100 dark:border-gray-700/60">
+            <thead className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20 border-t border-b border-gray-100 dark:border-gray-700/60">
               <tr>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap w-px">
                   <div className="flex items-center">
@@ -96,8 +99,8 @@ function AppsTable({
                     category={app.category}
                     description={app.description}
                     handleSelect={handleSelect}
-                    handleClick={() => handleClick(app.id)}
-                    isChecked={checkedApps.includes(app.id)}
+                    // handleClick={() => handleClick(app.id)}
+                    isChecked={selectedItems.includes(app.id)}
                     isAlternate={apps.indexOf(app) % 2 !== 0}
                   />
                 ))

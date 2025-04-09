@@ -7,7 +7,7 @@ import DropdownButton from "../ListDropdown";
 import PaginationClassic from "../../../components/PaginationClassic";
 import AppsTable from "../../../partials/apps/AppsTable";
 import appContext from "../../../context/AppContext";
-import CollapsibleAppsTable from "../CollapsibleAppsTable";
+import CollapsibleAppsTable from "../../../partials/apps/CollapsibleAppsTable";
 import ModalBlank from "../../../components/ModalBlank";
 import Banner from "../../../partials/containers/Banner";
 
@@ -126,14 +126,39 @@ function AppsList() {
 
   /* Toggles selection of all apps. If all apps are already selected, it deselects all apps. If all apps are not selected, it selects all apps. */
   function handleToggleSelectAll() {
-    if (state.selectedItems.length === state.appsList.length) {
-      dispatch({type: "SET_SELECTED_ITEMS", payload: []});
+    // Get IDs of all visible apps in the current page
+    const currentAppIds = currentApps.map((app) => app.id);
+
+    // Check if all current visible apps are selected
+    const allCurrentSelected = currentAppIds.every((id) =>
+      state.selectedItems.includes(id)
+    );
+
+    if (allCurrentSelected) {
+      // If all current apps are selected, remove them from selection
+      const newSelectedItems = state.selectedItems.filter(
+        (id) => !currentAppIds.includes(id)
+      );
+      dispatch({type: "SET_SELECTED_ITEMS", payload: newSelectedItems});
     } else {
-      dispatch({
-        type: "SET_SELECTED_ITEMS",
-        payload: state.appsList.map((app) => app.id),
+      // If not all current apps are selected, add the unselected ones
+      const newSelectedItems = [...state.selectedItems];
+      currentAppIds.forEach((id) => {
+        if (!newSelectedItems.includes(id)) {
+          newSelectedItems.push(id);
+        }
       });
+      dispatch({type: "SET_SELECTED_ITEMS", payload: newSelectedItems});
     }
+
+    // if (state.selectedItems.length === state.appsList.length) {
+    //   dispatch({type: "SET_SELECTED_ITEMS", payload: []});
+    // } else {
+    //   dispatch({
+    //     type: "SET_SELECTED_ITEMS",
+    //     payload: state.appsList.map((app) => app.id),
+    //   });
+    // }
   }
 
   /* Handles page change */

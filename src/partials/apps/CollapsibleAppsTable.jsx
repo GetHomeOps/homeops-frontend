@@ -106,7 +106,7 @@ function CollapsibleAppsTable({
         <div className="overflow-x-auto">
           <table className="table-auto w-full dark:text-gray-300">
             {/* Table header */}
-            <thead className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 border-t border-b border-gray-100 dark:border-gray-700/60">
+            <thead className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20 border-t border-b border-gray-100 dark:border-gray-700/60">
               <tr>
                 <th className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap w-px">
                   <div className="flex items-center">
@@ -146,7 +146,7 @@ function CollapsibleAppsTable({
               {Object.entries(sortedGroupedApps).map(([category, apps]) => (
                 <React.Fragment key={category}>
                   {/* Category header */}
-                  <tr className="bg-gray-200/80 dark:bg-gray-900/30 cursor-pointer hover:bg-gray-300/80 dark:hover:bg-gray-800/70">
+                  <tr className="bg-gray-200/80 dark:bg-gray-900/30 cursor-pointer ">
                     <td
                       colSpan="6"
                       className="px-2 first:pl-5 last:pr-5 py-3"
@@ -183,7 +183,7 @@ function CollapsibleAppsTable({
                           apps.indexOf(app) % 2 === 0
                             ? "bg-white dark:bg-gray-700/20"
                             : "bg-gray-50/80 dark:bg-gray-700/10"
-                        } hover:bg-gray-100 dark:hover:bg-gray-700/50`}
+                        } hover:bg-gray-200/50 dark:hover:bg-gray-700/90`}
                       >
                         <td className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap w-px">
                           <div className="flex items-center">
