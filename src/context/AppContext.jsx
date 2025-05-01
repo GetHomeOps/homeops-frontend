@@ -264,9 +264,11 @@ export function AppProvider({children}) {
       });
 
       if (res) {
-        setApps((prevApps) =>
-          [...prevApps, res].sort((a, b) => a.name.localeCompare(b.name))
-        );
+        // Update apps list with a single state update
+        setApps((prevApps) => {
+          const newApps = [...prevApps, res];
+          return newApps.sort((a, b) => a.name.localeCompare(b.name));
+        });
         return res;
       }
       return res;
@@ -438,7 +440,6 @@ export function AppProvider({children}) {
 
     try {
       const uniqueName = generateUniqueAppName(appToDuplicate.name);
-      // Clean the base URL by removing any existing copy suffixes
       const baseUrl = appToDuplicate.url.replace(/-copy(-\d+)?$/, "");
       const uniqueUrl = generateUniqueAppUrlWithNew(
         baseUrl,
@@ -454,7 +455,15 @@ export function AppProvider({children}) {
       };
 
       const res = await createApp(appData);
-      return res;
+
+      // Get the current view's apps after sorting
+      const currentViewApps = getCurrentViewApps();
+      const newIndex = currentViewApps.findIndex((app) => app.id === res.id);
+
+      return {
+        ...res,
+        _index: newIndex + 1, // Add 1-based index to the response
+      };
     } catch (error) {
       console.error("Error duplicating app:", error);
       throw error;

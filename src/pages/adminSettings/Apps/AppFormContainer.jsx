@@ -397,27 +397,27 @@ function AppFormContainer() {
       // Close modal immediately when Accept is clicked
       dispatch({type: "SET_DANGER_MODAL", payload: false});
 
-      // Find the current app index
-      const appIndex = apps.findIndex((app) => app.id === Number(id));
+      // Find the current app index in the sorted items
+      const appIndex = sortedItems.findIndex((app) => app.id === Number(id));
 
       // Delete the app
       await deleteApp(id);
 
       // Navigate based on remaining apps
-      if (apps.length <= 1) {
+      if (sortedItems.length <= 1) {
         // If this was the last app, go to apps list
         navigate(`/admin/apps${viewMode ? `?view=${viewMode}` : ""}`);
-      } else if (appIndex === apps.length - 1) {
+      } else if (appIndex === sortedItems.length - 1) {
         // If this was the last app in the list, go to previous app
         navigate(
-          `/admin/apps/${apps[appIndex - 1].id}${
+          `/admin/apps/${sortedItems[appIndex - 1].id}${
             viewMode ? `?view=${viewMode}` : ""
           }`
         );
       } else {
         // Otherwise go to next app
         navigate(
-          `/admin/apps/${apps[appIndex + 1].id}${
+          `/admin/apps/${sortedItems[appIndex + 1].id}${
             viewMode ? `?view=${viewMode}` : ""
           }`
         );
