@@ -644,5 +644,4 @@ function AppsList() {
     </div>
   );
 }
-
 export default AppsList;

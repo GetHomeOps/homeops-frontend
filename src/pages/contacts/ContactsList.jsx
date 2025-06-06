@@ -632,7 +632,7 @@ function ContactsList() {
                 )}
               </>
             ) : (
-              <div>I hate my fucking life</div>
+              <div>Group By View</div>
             )}
           </div>
         </main>
@@ -640,5 +640,4 @@ function ContactsList() {
     </div>
   );
 }
-
 export default ContactsList;

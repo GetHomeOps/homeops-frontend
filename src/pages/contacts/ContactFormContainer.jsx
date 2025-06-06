@@ -1,34 +1,65 @@
-import React, {useReducer, useEffect, useContext} from "react";
+import React, {useReducer, useEffect, useContext, useState} from "react";
 import {useNavigate, useParams, useLocation} from "react-router-dom";
-import {AlertCircle} from "lucide-react";
+import {
+  AlertCircle,
+  Phone,
+  Mail,
+  User,
+  Briefcase,
+  Globe,
+  MapPin,
+  Building,
+  CreditCard,
+  FileText,
+} from "lucide-react";
 import Banner from "../../partials/containers/Banner";
 import ModalBlank from "../../components/ModalBlank";
 import {useTranslation} from "react-i18next";
 import DropdownFilter from "../../components/DropdownFilter";
 import contactContext from "../../context/ContactContext";
 import {useAutoCloseBanner} from "../../hooks/useAutoCloseBanner";
+import {countries} from "../../data/countries";
+import {motion, AnimatePresence, useAnimationControls} from "framer-motion";
 
 const initialFormData = {
   name: "",
   email: "",
   phone: "",
   website: "",
+  jobPosition: "",
+  countryCode: "USA", // Default to USA
+  // ID fields
+  idType: "",
+  idNumber: "",
+  // Contact tab fields
+  street1: "",
+  street2: "",
+  city: "",
+  zip: "",
+  state: "",
+  country: "USA",
+  // Sales & Purchase tab fields
+  salesPerson: "",
+  salesPaymentTerms: "",
+  salesPaymentMethod: "",
+  purchaseResponsible: "",
+  purchasePaymentTerms: "",
+  purchasePaymentMethod: "",
+  rfqSubmission: "",
+  // Invoicing tab fields
+  invoiceSending: "",
+  invoiceResponsible: "",
+  // Notes tab field
+  notes: "",
 };
-
-/* Tabs */
-const tabs = [
-  {id: 1, label: "General"},
-  {id: 2, label: "Sales & Purchase"},
-  {id: 3, label: "Invoicing"},
-];
 
 const initialState = {
   formData: initialFormData,
   errors: {},
   isSubmitting: false,
-  contactToEdit: null,
+  contact: null,
   activeTab: 1,
-  isEditing: false,
+  isNew: false,
   bannerOpen: false,
   dangerModalOpen: false,
   currentContactIndex: 0,
@@ -38,21 +69,30 @@ const initialState = {
   imageMenuOpen: false,
   imageUrlModalOpen: false,
   showUrlInput: false,
+  formDataChanged: false,
+  isInitialLoad: true,
 };
 
 function reducer(state, action) {
   switch (action.type) {
     case "SET_FORM_DATA":
-      return {...state, formData: {...state.formData, ...action.payload}};
+      return {
+        ...state,
+        formData: {...state.formData, ...action.payload},
+        formDataChanged: !state.isInitialLoad,
+      };
     case "SET_ERRORS":
       return {...state, errors: action.payload};
     case "SET_SUBMITTING":
       return {...state, isSubmitting: action.payload};
-    case "SET_CONTACT_TO_EDIT":
+    case "SET_CONTACT":
       return {
         ...state,
-        contactToEdit: action.payload,
-        isEditing: !!action.payload,
+        contact: action.payload,
+        isNew: !action.payload,
+        formData: action.payload || initialFormData,
+        formDataChanged: false,
+        isInitialLoad: true,
       };
     case "SET_ACTIVE_TAB":
       return {...state, activeTab: action.payload};
@@ -73,16 +113,60 @@ function reducer(state, action) {
       return {...state, imageUrlModalOpen: action.payload};
     case "SET_SHOW_URL_INPUT":
       return {...state, showUrlInput: action.payload};
+    case "SET_FORM_CHANGED":
+      return {
+        ...state,
+        formDataChanged: action.payload,
+        isInitialLoad: false,
+      };
     default:
       return state;
   }
 }
 
+/* Form for 1 single contact
+
+Props:
+
+State:
+- formData: {
+  name: "",
+  email: "",
+  phone: "",
+  website: "",
+}
+- errors:
+- isSubmitting: false
+- contact: null
+- activeTab:
+- isEditing: false
+- bannerOpen: false
+- bannerType: "success"
+- bannerMessage: ""
+- imageMenuOpen: false
+- imageUrlModalOpen: false
+- showUrlInput: false
+
+ContactFormContainer
+
+*/
 function ContactsFormContainer() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const {id} = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const {t} = useTranslation();
+  const controls = useAnimationControls();
+
+  // Define tabs here where t is available
+  const tabs = [
+    {id: 1, label: t("general")},
+    {id: 2, label: t("salesPurchase")},
+    ...(state.formData.contactType === "company"
+      ? [{id: 3, label: t("contacts")}]
+      : []),
+    {id: 4, label: t("notes")},
+  ];
 
   const {
     createContact,
@@ -94,9 +178,7 @@ function ContactsFormContainer() {
     getCurrentViewContacts,
   } = useContext(contactContext);
 
-  const {t} = useTranslation();
-
-  // Fetch contactToEdit based on URL's contact id
+  // Fetch contact based on URL's contact id
   useEffect(() => {
     async function fetchContact() {
       if (id && id !== "new") {
@@ -106,7 +188,7 @@ function ContactsFormContainer() {
             (contact) => Number(contact.id) === Number(id)
           );
           if (existingContact) {
-            dispatch({type: "SET_CONTACT_TO_EDIT", payload: existingContact});
+            dispatch({type: "SET_CONTACT", payload: existingContact});
             // Only clear banner if it's not a success message from app creation
             if (
               state.bannerType !== "success" ||
@@ -137,7 +219,7 @@ function ContactsFormContainer() {
           });
         }
       } else {
-        dispatch({type: "SET_CONTACT_TO_EDIT", payload: null});
+        dispatch({type: "SET_CONTACT", payload: null});
       }
     }
     fetchContact();
@@ -155,38 +237,54 @@ function ContactsFormContainer() {
     })
   );
 
-  //Populate form data when in edit mode
+  // Populate form data when contact changes
   useEffect(() => {
-    if (state.isEditing && state.contactToEdit) {
+    if (state.contact) {
+      // Preserve all contact data while ensuring countryCode is set
+      const contactData = {
+        ...state.contact,
+        countryCode: state.contact.countryCode || "USA", // Ensure countryCode is set
+      };
       dispatch({
         type: "SET_FORM_DATA",
-        payload: {
-          name: state.contactToEdit.name,
-          email: state.contactToEdit.email,
-          phone: state.contactToEdit.phone,
-          website: state.contactToEdit.website,
-        },
+        payload: contactData,
       });
     } else {
       dispatch({type: "SET_FORM_DATA", payload: initialFormData});
     }
-  }, [state.isEditing, state.contactToEdit]);
+  }, [state.contact]);
 
   /* Handles form change */
   const handleChange = (e) => {
     const {id, value} = e.target;
-    dispatch({type: "SET_FORM_DATA", payload: {[id]: value}});
+
+    // Handle clearing of dependent fields when parent field changes
+    if (id === "contactType" && value !== "individual") {
+      dispatch({
+        type: "SET_FORM_DATA",
+        payload: {[id]: value, jobPosition: ""},
+      });
+    } else if (id === "country") {
+      dispatch({
+        type: "SET_FORM_DATA",
+        payload: {[id]: value, idType: "", idNumber: ""},
+      });
+    } else if (id === "idType") {
+      dispatch({type: "SET_FORM_DATA", payload: {[id]: value, idNumber: ""}});
+    } else {
+      dispatch({type: "SET_FORM_DATA", payload: {[id]: value}});
+    }
 
     // Clear error when field is being edited
     if (state.errors[id]) {
       dispatch({type: "SET_ERRORS", payload: {...state.errors, [id]: null}});
     }
-  };
 
-  /* Resets appToEdit upon selecting new contact button */
-  function onCreate(newContact) {
-    dispatch({type: "SET_CONTACT_TO_EDIT", payload: newContact});
-  }
+    // Mark form as changed after initial load
+    if (state.isInitialLoad) {
+      dispatch({type: "SET_FORM_CHANGED", payload: true});
+    }
+  };
 
   /* Handles submit button */
   async function handleSubmit(evt) {
@@ -194,11 +292,16 @@ function ContactsFormContainer() {
 
     if (!validateForm()) return;
 
+    const country = countries.find(
+      (c) => c.countryCode === state.formData.countryCode
+    );
     const contactData = {
       name: state.formData.name,
       email: state.formData.email,
       phone: state.formData.phone,
       website: state.formData.website,
+      countryCode: state.formData.countryCode,
+      phoneCode: country?.phoneCode || "+1",
     };
 
     dispatch({type: "SET_SUBMITTING", payload: true});
@@ -208,7 +311,7 @@ function ContactsFormContainer() {
 
       if (res && res.id) {
         // Update state with new contact
-        onCreate(res);
+        dispatch({type: "SET_CONTACT", payload: res});
 
         // Get the current view's sorted contacts
         const currentViewContacts = getCurrentViewContacts();
@@ -251,12 +354,13 @@ function ContactsFormContainer() {
         });
       }
     } catch (err) {
+      console.error("Error creating contact:", err);
       dispatch({
         type: "SET_BANNER",
         payload: {
           open: true,
           type: "error",
-          message: `Error creating contact: ${err}`,
+          message: `Error creating contact: ${err.message || err}`,
         },
       });
     } finally {
@@ -270,11 +374,17 @@ function ContactsFormContainer() {
 
     if (!validateForm()) return;
 
+    const country = countries.find(
+      (c) => c.countryCode === state.formData.countryCode
+    );
     const contactData = {
+      id: Number(id),
       name: state.formData.name,
       email: state.formData.email,
       phone: state.formData.phone,
       website: state.formData.website,
+      countryCode: state.formData.countryCode,
+      phoneCode: country?.phoneCode || "+1",
     };
 
     dispatch({type: "SET_SUBMITTING", payload: true});
@@ -282,31 +392,30 @@ function ContactsFormContainer() {
     try {
       const res = await updateContact(id, contactData);
       if (res) {
-        // Update the contactToEdit with the new data while maintaining the id
+        // Update the contact with the new data while maintaining the id
         dispatch({
-          type: "SET_CONTACT_TO_EDIT",
+          type: "SET_CONTACT",
           payload: {...contactData, id: Number(id)},
         });
 
         // Show success banner
-        setTimeout(() => {
-          dispatch({
-            type: "SET_BANNER",
-            payload: {
-              open: true,
-              type: "success",
-              message: t("contactUpdatedSuccessfullyMessage"),
-            },
-          });
-        }, 100);
+        dispatch({
+          type: "SET_BANNER",
+          payload: {
+            open: true,
+            type: "success",
+            message: t("contactUpdatedSuccessfullyMessage"),
+          },
+        });
       }
     } catch (err) {
+      console.error("Error updating contact:", err);
       dispatch({
         type: "SET_BANNER",
         payload: {
           open: true,
           type: "error",
-          message: `${t("updateErrorMessage")} ${err}`,
+          message: `${t("updateErrorMessage")} ${err.message || err}`,
         },
       });
     } finally {
@@ -347,16 +456,16 @@ function ContactsFormContainer() {
     }
   };
 
-  /* Navigates to previous page */
+  /* Navigates to contacts list */
   function handleBackClick() {
-    navigate(`/contacts`);
+    navigate("/contacts");
   }
 
   /* If editing a contact -> return the contact's name
   If new -> return 'New Contact' */
   function getPageTitle() {
-    if (state.contactToEdit) {
-      return `${state.contactToEdit.name}`;
+    if (state.contact) {
+      return `${state.contact.name}`;
     }
     return t("newContact");
   }
@@ -366,11 +475,38 @@ function ContactsFormContainer() {
     dispatch({type: "SET_ACTIVE_TAB", payload: tabId});
   }
 
+  /* Handles tab click */
+  const handleTabClick = (tabId) => async (e) => {
+    e.preventDefault();
+    const currentIndex = tabs.findIndex((tab) => tab.id === state.activeTab);
+    const newIndex = tabs.findIndex((tab) => tab.id === tabId);
+
+    await controls.start({
+      x: `${newIndex * 100}%`,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 25,
+      },
+    });
+
+    handleTabChange(tabId);
+  };
+
   /* Handles New Contact button click */
   function handleNewContact() {
-    dispatch({type: "SET_CONTACT_TO_EDIT", payload: null});
+    // Store current contact info in navigation state if we're viewing a contact
+    const navigationState = state.contact
+      ? {
+          previousContactId: state.contact.id,
+          previousState: location.state,
+        }
+      : undefined;
+
+    dispatch({type: "SET_CONTACT", payload: null});
     dispatch({type: "SET_FORM_DATA", payload: initialFormData});
     dispatch({type: "SET_ERRORS", payload: {}});
+    navigate("/contacts/new", {state: navigationState});
   }
 
   /* Handles delete button */
@@ -380,12 +516,12 @@ function ContactsFormContainer() {
 
   /* Handles duplicate button */
   async function handleDuplicate() {
-    if (!state.contactToEdit) return;
+    if (!state.contact) return;
 
     dispatch({type: "SET_SUBMITTING", payload: true});
 
     try {
-      const res = await duplicateContact(state.contactToEdit);
+      const res = await duplicateContact(state.contact);
 
       if (res && res.id) {
         //Navigate first
@@ -428,25 +564,15 @@ function ContactsFormContainer() {
         (contact) => contact.id === Number(id)
       );
 
-      //Delete the app
+      //Delete the contact
       await deleteContact(id);
 
-      // Show success banner first
-      dispatch({
-        type: "SET_BANNER",
-        payload: {
-          open: true,
-          type: "success",
-          message: t("contactDeletedSuccessfullyMessage"),
-        },
-      });
-
-      // Then navigate based on remaining contacts
+      // Navigate first based on remaining contacts
       if (contacts.length <= 1) {
-        // If this was the last app, go to contacts list
+        // If this was the last contact, go to contacts list
         navigate(`/contacts/`);
       } else if (contactIndex === contacts.length - 1) {
-        // If this was the last app in the list, go to previous app
+        // If this was the last contact in the list, go to previous contact
         const prevId = contacts[contactIndex - 1].id;
         navigate(`/contacts/${prevId}`, {
           state: {
@@ -470,6 +596,18 @@ function ContactsFormContainer() {
           },
         });
       }
+
+      // Then show success banner
+      setTimeout(() => {
+        dispatch({
+          type: "SET_BANNER",
+          payload: {
+            open: true,
+            type: "success",
+            message: t("contactDeletedSuccessfullyMessage"),
+          },
+        });
+      }, 100);
     } catch (error) {
       dispatch({
         type: "SET_BANNER",
@@ -482,8 +620,148 @@ function ContactsFormContainer() {
     }
   }
 
+  // Add a helper function for label classes
+  const getLabelClasses = () => {
+    return "block text-sm font-medium mb-1 text-gray-500 dark:text-gray-400";
+  };
+
+  // Add a helper function for input field classes
+  const getInputClasses = (fieldName) => {
+    const baseClasses = "form-input w-full";
+    const errorClasses = state.errors[fieldName]
+      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+      : "";
+    return `${baseClasses} ${errorClasses}`;
+  };
+
+  // Add a helper function for select field classes
+  const getSelectClasses = () => {
+    return "form-select w-full";
+  };
+
+  // Add a helper function for the country select classes
+  const getCountrySelectClasses = () => {
+    return "form-select w-12 pl-8";
+  };
+
+  // Add a helper function to handle country change
+  const handleCountryChange = (e) => {
+    const {value} = e.target;
+    const country = countries.find((c) => c.countryCode === value);
+
+    // Update the country code
+    dispatch({type: "SET_FORM_DATA", payload: {countryCode: value}});
+
+    // If there's a phone number, update it with the new country code
+    if (state.formData.phone) {
+      // Remove any existing country code
+      const phoneWithoutCode = state.formData.phone.replace(/^\+\d+\s*/, "");
+      // Add the new country code
+      const newPhone = phoneWithoutCode;
+      dispatch({type: "SET_FORM_DATA", payload: {phone: newPhone}});
+    }
+  };
+
+  // Add a helper function to handle phone change
+  const handlePhoneChange = (e) => {
+    const {value} = e.target;
+    // Remove any non-numeric characters
+    const phoneWithoutFormat = value.replace(/[^\d]/g, "");
+
+    // Format the phone number as XXX-XXX-XXXX
+    let formattedPhone = "";
+    if (phoneWithoutFormat.length > 0) {
+      formattedPhone = phoneWithoutFormat.slice(0, 10); // Limit to 10 digits
+      if (formattedPhone.length > 6) {
+        formattedPhone = `${formattedPhone.slice(0, 3)}-${formattedPhone.slice(
+          3,
+          6
+        )}-${formattedPhone.slice(6)}`;
+      } else if (formattedPhone.length > 3) {
+        formattedPhone = `${formattedPhone.slice(0, 3)}-${formattedPhone.slice(
+          3
+        )}`;
+      }
+    }
+
+    // Update form data and trigger form changed state
+    dispatch({
+      type: "SET_FORM_DATA",
+      payload: {phone: formattedPhone},
+    });
+
+    // Mark form as changed after initial load
+    if (state.isInitialLoad) {
+      dispatch({type: "SET_FORM_CHANGED", payload: true});
+    }
+  };
+
+  // Add these handlers near the other handlers
+  const handleFormFocus = () => {
+    dispatch({type: "SET_FORM_FOCUS", payload: true});
+  };
+
+  const handleFormBlur = () => {
+    dispatch({type: "SET_FORM_FOCUS", payload: false});
+  };
+
+  function handleCancel() {
+    if (state.contact) {
+      // For existing contacts, reset to original contact data
+      const originalData = {
+        ...initialFormData, // Start with initial form data
+        ...state.contact, // Override with contact data
+        // Ensure these fields are explicitly set to contact values or empty strings
+        name: state.contact.name || "",
+        email: state.contact.email || "",
+        phone: state.contact.phone || "",
+        website: state.contact.website || "",
+        countryCode: state.contact.countryCode || "USA",
+        jobPosition: state.contact.jobPosition || "",
+        idType: state.contact.idType || "",
+        idNumber: state.contact.idNumber || "",
+        street1: state.contact.street1 || "",
+        street2: state.contact.street2 || "",
+        city: state.contact.city || "",
+        zip: state.contact.zip || "",
+        state: state.contact.state || "",
+        country: state.contact.country || "USA",
+        salesPerson: state.contact.salesPerson || "",
+        salesPaymentTerms: state.contact.salesPaymentTerms || "",
+        salesPaymentMethod: state.contact.salesPaymentMethod || "",
+        purchaseResponsible: state.contact.purchaseResponsible || "",
+        purchasePaymentTerms: state.contact.purchasePaymentTerms || "",
+        purchasePaymentMethod: state.contact.purchasePaymentMethod || "",
+        rfqSubmission: state.contact.rfqSubmission || "",
+        invoiceSending: state.contact.invoiceSending || "",
+        invoiceResponsible: state.contact.invoiceResponsible || "",
+        notes: state.contact.notes || "",
+        contactType: state.contact.contactType || "",
+        image: state.contact.image || "",
+      };
+
+      // Reset form data to original values
+      dispatch({
+        type: "SET_FORM_DATA",
+        payload: originalData,
+      });
+
+      // Reset form changed state
+      dispatch({type: "SET_FORM_CHANGED", payload: false});
+      dispatch({type: "SET_ERRORS", payload: {}}); // Also clear any errors
+    } else {
+      // For new contacts, reset to initial form data
+      dispatch({
+        type: "SET_FORM_DATA",
+        payload: initialFormData,
+      });
+      dispatch({type: "SET_FORM_CHANGED", payload: false});
+      dispatch({type: "SET_ERRORS", payload: {}});
+      navigate("/contacts");
+    }
+  }
   return (
-    <div className="relative">
+    <div className="relative min-h-screen bg-[var(--color-gray-50)] dark:bg-gray-900">
       <div className="fixed top-18 right-0 w-auto sm:w-full z-50">
         <Banner
           type={state.bannerType}
@@ -512,7 +790,7 @@ function ContactsFormContainer() {
             dispatch({type: "SET_DANGER_MODAL", payload: open})
           }
         >
-          <div className="p-5 flex space-x-4">
+          <div className="p-5 flex space-x-4 ">
             {/* Icon */}
             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-gray-100 dark:bg-gray-700">
               <svg
@@ -529,15 +807,18 @@ function ContactsFormContainer() {
               {/* Modal header */}
               <div className="mb-2">
                 <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                  {state.contactToEdit
-                    ? `Delete ${state.contactToEdit.name}?`
+                  {state.contact
+                    ? `Delete ${state.contact.name}?`
                     : "Delete Contact?"}
                 </div>
               </div>
               {/* Modal content */}
               <div className="text-sm mb-10">
                 <div className="space-y-2">
-                  <p>{t("deleteBannerMessage")}</p>
+                  <p>
+                    {t("contactDeleteConfirmationMessage")}?{" "}
+                    {t("actionCantBeUndone")}
+                  </p>
                 </div>
               </div>
               {/* Modal footer */}
@@ -563,29 +844,135 @@ function ContactsFormContainer() {
         </ModalBlank>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl relative">
-        <div className="px-4 sm:px-6 lg:px-8 pt-8 w-full max-w-[96rem] mx-auto">
-          <div className="flex justify-between items-start">
-            <div className="flex flex-col">
-              <button
-                className="btn text-gray-500 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-600 mb-4 pl-0 focus:outline-none shadow-none self-start"
-                onClick={handleBackClick}
-              >
-                <svg
-                  className="fill-current shrink-0 mr-1"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                >
-                  <path d="M9.4 13.4l1.4-1.4-4-4 4-4-1.4-1.4L4 8z"></path>
-                </svg>
-                <span>{t("backToContacts")}</span>
-              </button>
+      <div className="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Navigation and Actions */}
+        <div className="flex justify-between items-center mb-2">
+          <button
+            className="btn text-gray-500 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-600  pl-0 focus:outline-none shadow-none "
+            onClick={handleBackClick}
+          >
+            <svg
+              className="fill-current shrink-0 mr-1"
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+            >
+              <path d="M9.4 13.4l1.4-1.4-4-4 4-4-1.4-1.4L4 8z"></path>
+            </svg>
+            <span className="text-lg">{t("contacts")}</span>
+          </button>
 
-              <div className="flex items-center space-x-6">
-                {/* Image Preview with Overlay Menu */}
-                <div className="relative group">
-                  <div className="w-28 h-28 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-3">
+            {state.contact && (
+              <DropdownFilter
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+                align="right"
+              />
+            )}
+            <button
+              className="btn bg-violet-500 hover:bg-violet-600 text-white transition-colors duration-200 shadow-sm"
+              onClick={handleNewContact}
+            >
+              {t("new")}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex justify-end mb-2">
+          {/* Contact Navigation */}
+          <div className="flex items-center">
+            {state.contact && location.state?.totalItems > 1 && (
+              <>
+                <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">
+                  {location.state.currentIndex} / {location.state.totalItems}
+                </span>
+                <button
+                  className="btn shadow-none p-1"
+                  title="Previous"
+                  onClick={() => {
+                    if (
+                      location.state?.visibleContactIds &&
+                      location.state.currentIndex > 1
+                    ) {
+                      const prevIndex = location.state.currentIndex - 2;
+                      const prevContactId =
+                        location.state.visibleContactIds[prevIndex];
+                      navigate(`/contacts/${prevContactId}`, {
+                        state: {
+                          ...location.state,
+                          currentIndex: location.state.currentIndex - 1,
+                        },
+                      });
+                    }
+                  }}
+                  disabled={!location.state || location.state.currentIndex <= 1}
+                >
+                  <svg
+                    className={`fill-current shrink-0 ${
+                      !location.state || location.state.currentIndex <= 1
+                        ? "text-gray-200 dark:text-gray-700"
+                        : "text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-600"
+                    }`}
+                    width="24"
+                    height="24"
+                    viewBox="0 0 18 18"
+                  >
+                    <path d="M9.4 13.4l1.4-1.4-4-4 4-4-1.4-1.4L4 8z"></path>
+                  </svg>
+                </button>
+
+                <button
+                  className="btn shadow-none p-1"
+                  title="Next"
+                  onClick={() => {
+                    if (
+                      location.state?.visibleContactIds &&
+                      location.state.currentIndex < location.state.totalItems
+                    ) {
+                      const nextIndex = location.state.currentIndex;
+                      const nextContactId =
+                        location.state.visibleContactIds[nextIndex];
+                      navigate(`/contacts/${nextContactId}`, {
+                        state: {
+                          ...location.state,
+                          currentIndex: location.state.currentIndex + 1,
+                        },
+                      });
+                    }
+                  }}
+                  disabled={
+                    !location.state ||
+                    location.state.currentIndex >= location.state.totalItems
+                  }
+                >
+                  <svg
+                    className={`fill-current shrink-0 ${
+                      !location.state ||
+                      location.state.currentIndex >= location.state.totalItems
+                        ? "text-gray-200 dark:text-gray-700"
+                        : "text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-600"
+                    }`}
+                    width="24"
+                    height="24"
+                    viewBox="0 0 18 18"
+                  >
+                    <path d="M6.6 13.4L5.2 12l4-4-4-4 1.4-1.4L12 8z"></path>
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {/* Image and Name with Info */}
+              <div className="flex items-start gap-4">
+                {/* Image Preview */}
+                <div className="relative group w-36 h-36 shrink-0">
+                  <div className="w-full h-full bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
                     {state.formData.image ? (
                       <img
                         src={state.formData.image}
@@ -616,9 +1003,8 @@ function ContactsFormContainer() {
                     )}
                   </div>
 
-                  {/* Two Dots Menu Button - Only visible on hover */}
                   <button
-                    className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center bg-white dark:bg-gray-800 rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-white dark:bg-gray-800 rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 ring-1 ring-gray-200 dark:ring-gray-700"
                     onClick={(e) => {
                       e.stopPropagation();
                       dispatch({
@@ -627,18 +1013,26 @@ function ContactsFormContainer() {
                       });
                     }}
                   >
-                    <div className="flex space-x-0.5">
-                      <div className="w-0.5 h-0.5 rounded-full bg-gray-500"></div>
-                      <div className="w-0.5 h-0.5 rounded-full bg-gray-500"></div>
-                    </div>
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                      />
+                    </svg>
                   </button>
 
-                  {/* Dropdown Menu */}
                   {state.imageMenuOpen && (
-                    <div className="absolute left-full ml-2 top-0 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                    <div className="absolute left-full ml-2 top-0 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
                       <div className="py-1">
                         <button
-                          className="w-full px-3 py-1.5 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -652,10 +1046,23 @@ function ContactsFormContainer() {
                             });
                           }}
                         >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                            />
+                          </svg>
                           {t("pasteUrl")}
                         </button>
                         <label
-                          className="w-full px-3 py-1.5 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer block"
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2 cursor-pointer"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -665,6 +1072,19 @@ function ContactsFormContainer() {
                             });
                           }}
                         >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                            />
+                          </svg>
                           <input
                             type="file"
                             className="hidden"
@@ -690,475 +1110,655 @@ function ContactsFormContainer() {
                   )}
                 </div>
 
-                <div className="flex flex-col">
-                  <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
-                    {getPageTitle()}
-                  </h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {state.isEditing
-                      ? t("editContactSubtitle")
-                      : t("newContactSubtitle")}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-end">
-              <div className="flex">
-                {/* Filter button */}
-                {state.isEditing && (
-                  <div className="m-1.5">
-                    <DropdownFilter
-                      onDelete={handleDelete}
-                      onDuplicate={handleDuplicate}
-                      align="right"
-                    />
+                {/* Contact Name, Type and Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                      {state.contact ? state.contact.name : getPageTitle()}
+                    </h1>
+                    {state.contact?.contactType && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300">
+                        {state.contact.contactType === "individual"
+                          ? t("individual")
+                          : t("company")}
+                      </span>
+                    )}
                   </div>
-                )}
 
-                <div className="m-1.5">
-                  <button
-                    className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300"
-                    onClick={handleNewContact}
-                  >
-                    {t("new")}
-                  </button>
+                  {/* Contact Details */}
+                  <div className="space-y-2">
+                    {state.contact?.phone && (
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                        <Phone className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <span className="truncate">
+                          {
+                            countries.find(
+                              (c) => c.countryCode === state.contact.countryCode
+                            )?.phoneCode
+                          }{" "}
+                          {state.contact.phone}
+                        </span>
+                      </div>
+                    )}
+                    {state.contact?.email && (
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                        <Mail className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <span className="truncate">{state.contact.email}</span>
+                      </div>
+                    )}
+                    {state.contact?.website && (
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                        <Globe className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <span className="truncate">
+                          {state.contact.website}
+                        </span>
+                      </div>
+                    )}
+                    {state.contact?.jobPosition && (
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                        <Briefcase className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <span className="truncate">
+                          {state.contact.jobPosition}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Contact Navigation */}
-              {state.isEditing && location.state?.totalItems > 1 && (
-                <div className="flex items-center mt-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">
-                    {location.state.currentIndex} / {location.state.totalItems}
-                  </span>
-                  <button
-                    className={`btn shadow-none p-1`}
-                    title="Previous"
-                    onClick={() => {
-                      const prevIndex = location.state.currentIndex - 1;
-                      if (prevIndex >= 1) {
-                        const prevId =
-                          location.state.visibleContactIds[prevIndex - 1];
-                        navigate(`/contacts/${prevId}`, {
-                          state: {
-                            ...location.state,
-                            currentIndex: prevIndex,
-                          },
-                        });
-                      }
-                    }}
-                    disabled={location.state.currentIndex <= 1}
-                  >
-                    <svg
-                      className={`fill-current shrink-0 ${
-                        location.state.currentIndex <= 1
-                          ? "text-gray-200 dark:text-gray-700"
-                          : "text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-600"
-                      }`}
-                      width="24"
-                      height="24"
-                      viewBox="0 0 18 18"
-                    >
-                      <path d="M9.4 13.4l1.4-1.4-4-4 4-4-1.4-1.4L4 8z"></path>
-                    </svg>
-                  </button>
-
-                  <button
-                    className={`btn shadow-none p-1`}
-                    title="Next"
-                    onClick={() => {
-                      const nextIndex = location.state.currentIndex + 1;
-                      if (nextIndex <= location.state.totalItems) {
-                        const nextId =
-                          location.state.visibleContactIds[nextIndex - 1];
-                        navigate(`/contacts/${nextId}`, {
-                          state: {
-                            ...location.state,
-                            currentIndex: nextIndex,
-                          },
-                        });
-                      }
-                    }}
-                    disabled={
-                      location.state.currentIndex >= location.state.totalItems
-                    }
-                  >
-                    <svg
-                      className={`fill-current shrink-0 ${
-                        location.state.currentIndex >= location.state.totalItems
-                          ? "text-gray-200 dark:text-gray-700"
-                          : "text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-600"
-                      }`}
-                      width="24"
-                      height="24"
-                      viewBox="0 0 18 18"
-                    >
-                      <path d="M6.6 13.4L5.2 12l4-4-4-4 1.4-1.4L12 8z"></path>
-                    </svg>
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
 
-          {/* URL Input - Only shown when pasteUrl is selected */}
-          {state.showUrlInput && (
-            <div className="mt-4 max-w-md">
-              <input
-                type="text"
-                id="image"
-                className="form-input w-full"
-                placeholder={t("imageUrlPlaceholder")}
-                value={state.formData.image}
-                onChange={handleChange}
-                onBlur={() =>
-                  dispatch({type: "SET_SHOW_URL_INPUT", payload: false})
-                }
-                autoFocus
-              />
-            </div>
-          )}
-
-          {/* Tabs */}
-          <div>
-            <div className="relative mt-4 mb-8">
-              <div
-                className="absolute bottom-0 w-full h-px bg-gray-200 dark:bg-gray-700/60"
-                aria-hidden="true"
-              ></div>
-              <ul className="relative text-sm font-medium flex flex-nowrap -mx-4 sm:-mx-6 lg:-mx-8 overflow-x-scroll no-scrollbar">
-                {tabs.map((tab) => (
-                  <li
-                    key={tab.id}
-                    className="mr-6 last:mr-0 first:pl-4 sm:first:pl-6 lg:first:pl-8 last:pr-4 sm:last:pr-6 lg:last:pr-8"
-                  >
-                    <button
-                      className={`pb-3 whitespace-nowrap border-b-2 ${
-                        state.activeTab === tab.id
-                          ? "text-violet-500 border-violet-500"
-                          : "text-gray-500 border-transparent"
-                      }`}
-                      onClick={() => handleTabChange(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {state.showUrlInput && (
+              <div className="mt-4 max-w-md">
+                <input
+                  type="text"
+                  id="image"
+                  className="form-input w-full"
+                  placeholder={t("imageUrlPlaceholder")}
+                  value={state.formData.image}
+                  onChange={handleChange}
+                  onBlur={() =>
+                    dispatch({type: "SET_SHOW_URL_INPUT", payload: false})
+                  }
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 pb-8 w-full max-w-[96rem] mx-auto">
-          <form onSubmit={state.isEditing ? handleUpdate : handleSubmit}>
-            {state.activeTab === 1 && (
-              <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Contact Name */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="name"
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <form
+            onSubmit={state.isNew ? handleSubmit : handleUpdate}
+            onFocus={handleFormFocus}
+            onBlur={handleFormBlur}
+          >
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <div className="px-6">
+                <nav className="flex space-x-8" aria-label="Tabs">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={handleTabClick(tab.id)}
+                      className={`
+                        relative py-4 px-1 text-sm font-medium border-b-2 transition-colors duration-200
+                        ${
+                          state.activeTab === tab.id
+                            ? "border-violet-500 text-violet-600 dark:text-violet-400"
+                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
+                        }
+                      `}
                     >
-                      {t("name")} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      id="name"
-                      className={`form-input w-full ${
-                        state.errors.name
-                          ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                          : ""
-                      }`}
-                      type="text"
-                      value={state.formData.name}
-                      onChange={handleChange}
-                      placeholder={t("contactNamePlaceholder")}
-                    />
-                    {state.errors.name && (
-                      <div className="mt-1 flex items-center text-sm text-red-500">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{state.errors.name}</span>
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {state.activeTab === 1 && (
+                <div className="space-y-8">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+                      <User className="h-5 w-5 text-violet-500" />
+                      {t("basicInformation")}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className={getLabelClasses()} htmlFor="name">
+                          {t("name")} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          id="name"
+                          className={getInputClasses("name")}
+                          type="text"
+                          value={state.formData.name}
+                          onChange={handleChange}
+                          placeholder={t("namePlaceholder")}
+                        />
+                        {state.errors.name && (
+                          <div className="mt-1 flex items-center text-sm text-red-500">
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            <span>{state.errors.name}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
+
+                      <div className="grid grid-cols-5 gap-3">
+                        <div className="col-span-2">
+                          <label
+                            className={getLabelClasses()}
+                            htmlFor="contactType"
+                          >
+                            {t("contactType")}
+                          </label>
+                          <select
+                            id="contactType"
+                            className={getSelectClasses()}
+                            value={state.formData.contactType}
+                            onChange={handleChange}
+                          >
+                            <option value="">{t("selectContactType")}</option>
+                            <option value="individual">Individual</option>
+                            <option value="company">Company</option>
+                          </select>
+                        </div>
+
+                        <div className="col-span-3">
+                          <label
+                            className={getLabelClasses()}
+                            htmlFor="jobPosition"
+                          >
+                            {t("jobPosition")}
+                          </label>
+                          <input
+                            id="jobPosition"
+                            className={`form-input w-full ${
+                              state.formData.contactType !== "individual"
+                                ? "bg-gray-100 dark:bg-gray-700/50 cursor-not-allowed opacity-75"
+                                : ""
+                            }`}
+                            type="text"
+                            value={state.formData.jobPosition}
+                            onChange={handleChange}
+                            placeholder={t("jobPositionPlaceholder")}
+                            disabled={
+                              state.formData.contactType !== "individual"
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="grid grid-cols-5 gap-3">
+                          <div className="col-span-2">
+                            <label
+                              className={getLabelClasses()}
+                              htmlFor="idType"
+                            >
+                              {t("idType")}
+                            </label>
+                            <input
+                              id="idType"
+                              className={getInputClasses("idType")}
+                              type="text"
+                              value={state.formData.idType}
+                              onChange={handleChange}
+                              placeholder={t("idTypePlaceholder")}
+                              disabled={!state.formData.country}
+                            />
+                          </div>
+
+                          <div className="col-span-3">
+                            <label
+                              className={getLabelClasses()}
+                              htmlFor="idNumber"
+                            >
+                              {t("idNumber")}
+                            </label>
+                            <input
+                              id="idNumber"
+                              className={getInputClasses("idNumber")}
+                              type="text"
+                              value={state.formData.idNumber}
+                              onChange={handleChange}
+                              placeholder={t("idNumberPlaceholder")}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className={getLabelClasses()} htmlFor="phone">
+                          {t("mobilePhone")}
+                        </label>
+                        <div className="flex gap-2">
+                          <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                              {
+                                countries.find(
+                                  (c) =>
+                                    c.countryCode === state.formData.countryCode
+                                )?.flag
+                              }
+                            </div>
+                            <select
+                              id="countryCode"
+                              className={`${getCountrySelectClasses()} text-gray-400 dark:text-gray-500`}
+                              value={state.formData.countryCode}
+                              onChange={handleCountryChange}
+                            >
+                              {countries.map((country) => (
+                                <option
+                                  key={country.id}
+                                  value={country.countryCode}
+                                >
+                                  {country.flag} {country.name} (
+                                  {country.phoneCode})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="relative flex-1">
+                            <input
+                              id="phone"
+                              className={`${getInputClasses("phone")}`}
+                              type="tel"
+                              value={state.formData.phone}
+                              onChange={handlePhoneChange}
+                              placeholder={t("phonePlaceholder")}
+                              style={{
+                                paddingLeft: `${
+                                  (countries.find(
+                                    (c) =>
+                                      c.countryCode ===
+                                      state.formData.countryCode
+                                  )?.phoneCode?.length || 1) *
+                                    0.65 +
+                                  0.65
+                                }rem`,
+                              }}
+                            />
+                            <div
+                              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 text-sm"
+                              style={{
+                                paddingRight: "0.2rem",
+                              }}
+                            >
+                              {
+                                countries.find(
+                                  (c) =>
+                                    c.countryCode === state.formData.countryCode
+                                )?.phoneCode
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className={getLabelClasses()} htmlFor="email">
+                          {t("email")}
+                        </label>
+                        <input
+                          id="email"
+                          className={getInputClasses("email")}
+                          type="email"
+                          value={state.formData.email}
+                          onChange={handleChange}
+                          placeholder={t("emailPlaceholder")}
+                        />
+                        {state.errors.email && (
+                          <div className="mt-1 flex items-center text-sm text-red-500">
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            <span>{state.errors.email}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className={getLabelClasses()} htmlFor="website">
+                          {t("website")}
+                        </label>
+                        <input
+                          id="website"
+                          className={getInputClasses("website")}
+                          type="url"
+                          value={state.formData.website}
+                          onChange={handleChange}
+                          placeholder={t("websitePlaceholder")}
+                        />
+                        {state.errors.website && (
+                          <div className="mt-1 flex items-center text-sm text-red-500">
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            <span>{state.errors.website}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Email */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="email"
-                    >
-                      {t("email")}
-                    </label>
-                    <input
-                      id="email"
-                      className={`form-input w-full ${
-                        state.errors.email
-                          ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                          : ""
-                      }`}
-                      type="email"
-                      value={state.formData.email}
-                      onChange={handleChange}
-                      placeholder={t("emailPlaceholder")}
-                    />
-                    {state.errors.email && (
-                      <div className="mt-1 flex items-center text-sm text-red-500">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{state.errors.email}</span>
-                      </div>
-                    )}
-                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-violet-500" />
+                      {t("address")}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-1">
+                        <div className="grid grid-cols-1 gap-4">
+                          <div>
+                            <label
+                              className={getLabelClasses()}
+                              htmlFor="street1"
+                            >
+                              {t("street1")}
+                            </label>
+                            <input
+                              id="street1"
+                              className={getInputClasses("street1")}
+                              type="text"
+                              value={state.formData.street1}
+                              onChange={handleChange}
+                              placeholder={t("street1Placeholder")}
+                            />
+                          </div>
 
-                  {/* Phone */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="phone"
-                    >
-                      {t("phone")}
-                    </label>
-                    <input
-                      id="phone"
-                      className="form-input w-full"
-                      type="tel"
-                      value={state.formData.phone}
-                      onChange={handleChange}
-                      placeholder={t("phonePlaceholder")}
-                    />
-                  </div>
+                          <div>
+                            <label
+                              className={getLabelClasses()}
+                              htmlFor="street2"
+                            >
+                              {t("street2")}
+                            </label>
+                            <input
+                              id="street2"
+                              className={getInputClasses("street2")}
+                              type="text"
+                              value={state.formData.street2}
+                              onChange={handleChange}
+                              placeholder={t("street2Placeholder")}
+                            />
+                          </div>
 
-                  {/* Website */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="website"
-                    >
-                      {t("website")}
-                    </label>
-                    <input
-                      id="website"
-                      className={`form-input w-full ${
-                        state.errors.website
-                          ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                          : ""
-                      }`}
-                      type="url"
-                      value={state.formData.website}
-                      onChange={handleChange}
-                      placeholder={t("websitePlaceholder")}
-                    />
-                    {state.errors.website && (
-                      <div className="mt-1 flex items-center text-sm text-red-500">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        <span>{state.errors.website}</span>
+                          <div className="grid grid-cols-12 gap-4">
+                            <div className="col-span-5">
+                              <label
+                                className={getLabelClasses()}
+                                htmlFor="city"
+                              >
+                                {t("city")}
+                              </label>
+                              <input
+                                id="city"
+                                className={getInputClasses("city")}
+                                type="text"
+                                value={state.formData.city}
+                                onChange={handleChange}
+                                placeholder={t("cityPlaceholder")}
+                              />
+                            </div>
+
+                            <div className="col-span-4">
+                              <label
+                                className={getLabelClasses()}
+                                htmlFor="state"
+                              >
+                                {t("state")}
+                              </label>
+                              <input
+                                id="state"
+                                className={getInputClasses("state")}
+                                type="text"
+                                value={state.formData.state}
+                                onChange={handleChange}
+                                placeholder={t("statePlaceholder")}
+                              />
+                            </div>
+
+                            <div className="col-span-3">
+                              <label
+                                className={getLabelClasses()}
+                                htmlFor="zip"
+                              >
+                                {t("zip")}
+                              </label>
+                              <input
+                                id="zip"
+                                className={getInputClasses("zip")}
+                                type="text"
+                                value={state.formData.zip}
+                                onChange={handleChange}
+                                placeholder={t("zipPlaceholder")}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-4">
+                            <div className="col-span-2">
+                              <label
+                                className={getLabelClasses()}
+                                htmlFor="country"
+                              >
+                                {t("country")}
+                              </label>
+                              <select
+                                id="country"
+                                className={getSelectClasses()}
+                                value={state.formData.country}
+                                onChange={(e) => {
+                                  handleChange(e);
+                                  // Reset ID type when country changes
+                                  dispatch({
+                                    type: "SET_FORM_DATA",
+                                    payload: {idType: "", idNumber: ""},
+                                  });
+                                }}
+                              >
+                                {countries.map((country) => (
+                                  <option
+                                    key={country.id}
+                                    value={country.countryCode}
+                                  >
+                                    {country.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {state.activeTab === 2 && (
-              <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Street 1 */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="street1"
-                    >
-                      {t("street1")}
-                    </label>
-                    <input
-                      id="street1"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.street1}
-                      onChange={handleChange}
-                      placeholder={t("street1Placeholder")}
-                    />
+              {state.activeTab === 2 && (
+                <div className="space-y-8">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-violet-500" />
+                      {t("sales")}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label
+                          className={getLabelClasses()}
+                          htmlFor="salesPaymentTerms"
+                        >
+                          {t("paymentTerms")}
+                        </label>
+                        <input
+                          id="salesPaymentTerms"
+                          className={getInputClasses("salesPaymentTerms")}
+                          type="text"
+                          value={state.formData.salesPaymentTerms}
+                          onChange={handleChange}
+                          placeholder={t("paymentTermsPlaceholder")}
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          className={getLabelClasses()}
+                          htmlFor="salesPaymentMethod"
+                        >
+                          {t("paymentMethod")}
+                        </label>
+                        <input
+                          id="salesPaymentMethod"
+                          className={getInputClasses("salesPaymentMethod")}
+                          type="text"
+                          value={state.formData.salesPaymentMethod}
+                          onChange={handleChange}
+                          placeholder={t("paymentMethodPlaceholder")}
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Street 2 */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="street2"
-                    >
-                      {t("street2")}
-                    </label>
-                    <input
-                      id="street2"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.street2}
-                      onChange={handleChange}
-                      placeholder={t("street2Placeholder")}
-                    />
-                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+                      <Building className="h-5 w-5 text-violet-500" />
+                      {t("purchase")}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label
+                          className={getLabelClasses()}
+                          htmlFor="rfqSubmission"
+                        >
+                          {t("rfqSubmission")}
+                        </label>
+                        <select
+                          id="rfqSubmission"
+                          className={getSelectClasses()}
+                          value={state.formData.rfqSubmission}
+                          onChange={handleChange}
+                        >
+                          <option value="">{t("selectRfqSubmission")}</option>
+                          <option value="email">Email</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="message">Message</option>
+                        </select>
+                      </div>
 
-                  {/* City */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="city"
-                    >
-                      {t("city")}
-                    </label>
-                    <input
-                      id="city"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.city}
-                      onChange={handleChange}
-                      placeholder={t("cityPlaceholder")}
-                    />
-                  </div>
+                      <div>
+                        <label
+                          className={getLabelClasses()}
+                          htmlFor="purchasePaymentTerms"
+                        >
+                          {t("paymentTerms")}
+                        </label>
+                        <input
+                          id="purchasePaymentTerms"
+                          className={getInputClasses("purchasePaymentTerms")}
+                          type="text"
+                          value={state.formData.purchasePaymentTerms}
+                          onChange={handleChange}
+                          placeholder={t("paymentTermsPlaceholder")}
+                        />
+                      </div>
 
-                  {/* State */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="state"
-                    >
-                      {t("state")}
-                    </label>
-                    <input
-                      id="state"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.state}
-                      onChange={handleChange}
-                      placeholder={t("statePlaceholder")}
-                    />
-                  </div>
-
-                  {/* ZIP */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="zip"
-                    >
-                      {t("zip")}
-                    </label>
-                    <input
-                      id="zip"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.zip}
-                      onChange={handleChange}
-                      placeholder={t("zipPlaceholder")}
-                    />
-                  </div>
-
-                  {/* Country */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="country"
-                    >
-                      {t("country")}
-                    </label>
-                    <input
-                      id="country"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.country}
-                      onChange={handleChange}
-                      placeholder={t("countryPlaceholder")}
-                    />
+                      <div>
+                        <label
+                          className={getLabelClasses()}
+                          htmlFor="purchasePaymentMethod"
+                        >
+                          {t("paymentMethod")}
+                        </label>
+                        <input
+                          id="purchasePaymentMethod"
+                          className={getInputClasses("purchasePaymentMethod")}
+                          type="text"
+                          value={state.formData.purchasePaymentMethod}
+                          onChange={handleChange}
+                          placeholder={t("paymentMethodPlaceholder")}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {state.activeTab === 3 && (
-              <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Add your invoicing fields here */}
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="invoice_prefix"
-                    >
-                      Invoice Prefix
-                    </label>
-                    <input
-                      id="invoice_prefix"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.invoice_prefix || ""}
-                      onChange={handleChange}
-                      placeholder="Enter invoice prefix"
-                    />
-                  </div>
+              {state.activeTab === 2 && state.jobPosition == "company" && (
+                <div className="space-y-8">
+                  {/* Contact tab is empty for now */}
+                </div>
+              )}
 
-                  <div>
-                    <label
-                      className="block text-sm font-medium mb-1"
-                      htmlFor="payment_terms"
-                    >
-                      Payment Terms
-                    </label>
-                    <input
-                      id="payment_terms"
-                      className="form-input w-full"
-                      type="text"
-                      value={state.formData.payment_terms || ""}
-                      onChange={handleChange}
-                      placeholder="Enter payment terms"
-                    />
+              {state.activeTab === 4 && (
+                <div className="space-y-8">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-violet-500" />
+                      {t("notes")}
+                    </h3>
+                    <div className="grid grid-cols-1 gap-6">
+                      <div>
+                        <textarea
+                          id="notes"
+                          className={`${getInputClasses(
+                            "notes"
+                          )} min-h-[100px]`}
+                          value={state.formData.notes}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Form Actions */}
-            <div className="mt-8 flex justify-end space-x-4">
-              <button
-                type="button"
-                className="btn border-gray-300 text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600"
-                onClick={handleBackClick}
-              >
-                {t("cancel")}
-              </button>
-              <button
-                type="submit"
-                className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                disabled={state.isSubmitting}
-              >
-                {state.isSubmitting ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white dark:text-gray-800"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {t("saving")}
-                  </>
-                ) : state.isEditing ? (
-                  t("update")
-                ) : (
-                  t("save")
-                )}
-              </button>
+            <div
+              className={`${
+                state.formDataChanged || state.isNew ? "sticky" : "hidden"
+              } bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-lg transition-all duration-200`}
+            >
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  className="btn bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300 transition-colors duration-200 shadow-sm"
+                  onClick={handleCancel}
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="btn bg-violet-500 hover:bg-violet-600 text-white transition-colors duration-200 shadow-sm min-w-[100px]"
+                  disabled={state.isSubmitting}
+                >
+                  {state.isSubmitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <svg
+                        className="animate-spin h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {t("saving")}
+                    </div>
+                  ) : state.isNew ? (
+                    t("save")
+                  ) : (
+                    t("update")
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         </div>
