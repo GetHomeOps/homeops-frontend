@@ -100,6 +100,7 @@ function ContactsList() {
     groupSortedItems,
     sortConfig,
     handleSort,
+    paymentTerms,
   } = useContext(contactContext);
 
   // Set up component's initial state
@@ -419,7 +420,7 @@ function ContactsList() {
     dispatch({type: "SET_CURRENT_PAGE", payload: page});
   };
 
-  console.log("ListSortedItems: ", listSortedItems);
+  console.log("Payment Terms: ", paymentTerms);
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">

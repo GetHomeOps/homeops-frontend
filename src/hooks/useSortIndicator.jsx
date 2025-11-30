@@ -2,6 +2,8 @@ import React from "react";
 
 export const useSortIndicator = () => {
   const renderSortIndicator = (sortConfig, key) => {
+    if (!sortConfig || !key) return null;
+
     if (sortConfig.key === key) {
       return (
         <span className="ml-1">

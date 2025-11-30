@@ -15,8 +15,12 @@ import App from "../adminSettings/Apps/App";
 import CategoriesList from "../adminSettings/Categories/CategoriesList";
 import Category from "../adminSettings/Categories/Category";
 import AuthContext from "../../context/AuthContext";
-import ContactList from "../contacts/contactsList";
+import ContactList from "../contacts/ContactsList";
+import UsersList from "../users/UsersList";
+import User from "../users/User";
 import Contact from "../contacts/Contact";
+import PropertiesList from "../properties/PropertiesList";
+import Property from "../properties/Property";
 
 function RoutesList() {
   const {currentUser, isLoading} = useContext(AuthContext);
@@ -37,17 +41,21 @@ function RoutesList() {
   const privateRoutes = (
     <>
       <Route path="/settings/account" element={<Account />} />
-      <Route path="/settings/databases" element={<Databases />} />
-      <Route path="/:dbName" element={<Main />} />
+      <Route path="/:dbUrl/home" element={<Main />} />
       <Route path="/admin/apps" element={<AppList />} />
       <Route path="/admin/apps/new" element={<App />} />
       <Route path="/admin/apps/:id" element={<App />} />
       <Route path="/admin/categories" element={<CategoriesList />} />
       <Route path="/admin/categories/new" element={<Category />} />
       <Route path="/admin/categories/:id" element={<Category />} />
-      <Route path="/contacts" element={<ContactList />} />
-      <Route path="/contacts/new" element={<Contact />} />
-      <Route path="/contacts/:id" element={<Contact />} />
+      <Route path="/:dbUrl/contacts" element={<ContactList />} />
+      <Route path="/:dbUrl/contacts/new" element={<Contact />} />
+      <Route path="/:dbUrl/contacts/:id" element={<Contact />} />
+      <Route path="/:dbUrl/users" element={<UsersList />} />
+      <Route path="/:dbUrl/users/:id" element={<User />} />
+      <Route path="/:dbUrl/properties" element={<PropertiesList />} />
+      <Route path="/:dbUrl/properties/new" element={<Property />} />
+      <Route path="/:dbUrl/properties/:id" element={<Property />} />
     </>
   );
 
@@ -60,12 +68,7 @@ function RoutesList() {
       {/* Dynamic fallback based on auth state */}
       <Route
         path="*"
-        element={
-          <Navigate
-            to={currentUser ? "/settings/databases" : "/signin"}
-            replace
-          />
-        }
+        element={<Navigate to={currentUser ? "/:dbName" : "/signin"} replace />}
       />
     </Routes>
   );

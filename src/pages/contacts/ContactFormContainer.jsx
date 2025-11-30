@@ -1,5 +1,11 @@
-import React, {useReducer, useEffect, useContext, useState} from "react";
-import {useNavigate, useParams, useLocation} from "react-router-dom";
+import React, {
+  useReducer,
+  useEffect,
+  useContext,
+  useState,
+  useRef,
+} from "react";
+import {useNavigate, useParams, useLocation, NavLink} from "react-router-dom";
 import {
   AlertCircle,
   Phone,
@@ -11,6 +17,8 @@ import {
   Building,
   CreditCard,
   FileText,
+  X,
+  ChevronDown,
 } from "lucide-react";
 import Banner from "../../partials/containers/Banner";
 import ModalBlank from "../../components/ModalBlank";
@@ -20,6 +28,7 @@ import contactContext from "../../context/ContactContext";
 import {useAutoCloseBanner} from "../../hooks/useAutoCloseBanner";
 import {countries} from "../../data/countries";
 import {motion, AnimatePresence, useAnimationControls} from "framer-motion";
+import SelectDropdown from "./SelectDropdown";
 
 const initialFormData = {
   name: "",
@@ -28,6 +37,8 @@ const initialFormData = {
   website: "",
   jobPosition: "",
   countryCode: "USA", // Default to USA
+  contactType: "individual", // Default to individual
+  image: "", // Add missing image field
   // ID fields
   idType: "",
   idNumber: "",
@@ -40,10 +51,10 @@ const initialFormData = {
   country: "USA",
   // Sales & Purchase tab fields
   salesPerson: "",
-  salesPaymentTerms: "",
+  salesPaymentTerm: "",
   salesPaymentMethod: "",
   purchaseResponsible: "",
-  purchasePaymentTerms: "",
+  purchasePaymentTerm: "",
   purchasePaymentMethod: "",
   rfqSubmission: "",
   // Invoicing tab fields
@@ -51,6 +62,9 @@ const initialFormData = {
   invoiceResponsible: "",
   // Notes tab field
   notes: "",
+  // New fields
+  linkedCompany: "",
+  tags: [],
 };
 
 const initialState = {
@@ -90,7 +104,9 @@ function reducer(state, action) {
         ...state,
         contact: action.payload,
         isNew: !action.payload,
-        formData: action.payload || initialFormData,
+        formData: action.payload
+          ? {...initialFormData, ...action.payload}
+          : initialFormData,
         formDataChanged: false,
         isInitialLoad: true,
       };
@@ -161,14 +177,11 @@ function ContactsFormContainer() {
   // Define tabs here where t is available
   const tabs = [
     {id: 1, label: t("general")},
-    {id: 2, label: t("salesPurchase")},
-    ...(state.formData.contactType === "company"
-      ? [{id: 3, label: t("contacts")}]
-      : []),
-    {id: 4, label: t("notes")},
+    {id: 2, label: t("notes")},
   ];
 
   const {
+    paymentTerms,
     createContact,
     updateContact,
     duplicateContact,
@@ -262,7 +275,7 @@ function ContactsFormContainer() {
     if (id === "contactType" && value !== "individual") {
       dispatch({
         type: "SET_FORM_DATA",
-        payload: {[id]: value, jobPosition: ""},
+        payload: {[id]: value, jobPosition: "", linkedCompany: ""},
       });
     } else if (id === "country") {
       dispatch({
@@ -302,6 +315,10 @@ function ContactsFormContainer() {
       website: state.formData.website,
       countryCode: state.formData.countryCode,
       phoneCode: country?.phoneCode || "+1",
+      contactType: state.formData.contactType,
+      jobPosition: state.formData.jobPosition,
+      linkedCompany: state.formData.linkedCompany,
+      tags: state.formData.tags,
     };
 
     dispatch({type: "SET_SUBMITTING", payload: true});
@@ -385,6 +402,10 @@ function ContactsFormContainer() {
       website: state.formData.website,
       countryCode: state.formData.countryCode,
       phoneCode: country?.phoneCode || "+1",
+      contactType: state.formData.contactType,
+      jobPosition: state.formData.jobPosition,
+      linkedCompany: state.formData.linkedCompany,
+      tags: state.formData.tags,
     };
 
     dispatch({type: "SET_SUBMITTING", payload: true});
@@ -738,6 +759,8 @@ function ContactsFormContainer() {
         notes: state.contact.notes || "",
         contactType: state.contact.contactType || "",
         image: state.contact.image || "",
+        linkedCompany: state.contact.linkedCompany || "",
+        tags: state.contact.tags || [],
       };
 
       // Reset form data to original values
@@ -760,6 +783,325 @@ function ContactsFormContainer() {
       navigate("/contacts");
     }
   }
+
+  // Add a helper function to add link options to arrays
+  const addLinkOptions = (options, linkOptions) => {
+    return [
+      ...options,
+      ...(Array.isArray(linkOptions) ? linkOptions : [linkOptions]),
+    ];
+  };
+
+  function handleSalesPaymentTermChange(value) {
+    // Update the sales payment term in form data
+    dispatch({
+      type: "SET_FORM_DATA",
+      payload: {salesPaymentTerm: value},
+    });
+
+    // Clear error when field is being edited
+    if (state.errors.salesPaymentTerm) {
+      dispatch({
+        type: "SET_ERRORS",
+        payload: {...state.errors, salesPaymentTerm: null},
+      });
+    }
+
+    // Mark form as changed after initial load
+    if (state.isInitialLoad) {
+      dispatch({type: "SET_FORM_CHANGED", payload: true});
+    }
+  }
+
+  function handlePurchasePaymentTermChange(value) {
+    // Update the purchase payment term in form data
+    dispatch({
+      type: "SET_FORM_DATA",
+      payload: {purchasePaymentTerm: value},
+    });
+
+    // Clear error when field is being edited
+    if (state.errors.purchasePaymentTerm) {
+      dispatch({
+        type: "SET_ERRORS",
+        payload: {...state.errors, purchasePaymentTerm: null},
+      });
+    }
+
+    // Mark form as changed after initial load
+    if (state.isInitialLoad) {
+      dispatch({type: "SET_FORM_CHANGED", payload: true});
+    }
+  }
+
+  // Handler for linked company selection
+  function handleLinkedCompanyChange(value) {
+    dispatch({
+      type: "SET_FORM_DATA",
+      payload: {linkedCompany: value},
+    });
+
+    // Clear error when field is being edited
+    if (state.errors.linkedCompany) {
+      dispatch({
+        type: "SET_ERRORS",
+        payload: {...state.errors, linkedCompany: null},
+      });
+    }
+
+    // Mark form as changed after initial load
+    if (state.isInitialLoad) {
+      dispatch({type: "SET_FORM_CHANGED", payload: true});
+    }
+  }
+
+  // Handler for adding tags
+  function handleAddTag(tagId) {
+    if (!state.formData.tags.includes(tagId)) {
+      dispatch({
+        type: "SET_FORM_DATA",
+        payload: {tags: [...state.formData.tags, tagId]},
+      });
+
+      // Mark form as changed after initial load
+      if (state.isInitialLoad) {
+        dispatch({type: "SET_FORM_CHANGED", payload: true});
+      }
+    }
+  }
+
+  // Handler for removing tags
+  function handleRemoveTag(tagIdToRemove) {
+    dispatch({
+      type: "SET_FORM_DATA",
+      payload: {
+        tags: state.formData.tags.filter((tagId) => tagId !== tagIdToRemove),
+      },
+    });
+
+    // Mark form as changed after initial load
+    if (state.isInitialLoad) {
+      dispatch({type: "SET_FORM_CHANGED", payload: true});
+    }
+  }
+
+  // Available tags for selection
+  const availableTags = [
+    {
+      id: "customer",
+      name: t("customer"),
+      color: "bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300",
+    },
+    {
+      id: "vip",
+      name: t("vip"),
+      color:
+        "bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300",
+    },
+    {
+      id: "supplier",
+      name: t("supplier"),
+      color:
+        "bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-300",
+    },
+    {
+      id: "partner",
+      name: t("partner"),
+      color:
+        "bg-orange-100 text-orange-800 dark:bg-orange-900/60 dark:text-orange-300",
+    },
+    {
+      id: "prospect",
+      name: t("prospect"),
+      color:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-300",
+    },
+    {
+      id: "lead",
+      name: t("lead"),
+      color: "bg-pink-100 text-pink-800 dark:bg-pink-900/60 dark:text-pink-300",
+    },
+    {
+      id: "employee",
+      name: t("employee"),
+      color:
+        "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300",
+    },
+    {
+      id: "contractor",
+      name: t("contractor"),
+      color: "bg-gray-100 text-gray-800 dark:bg-gray-900/60 dark:text-gray-300",
+    },
+  ];
+
+  // Get company contacts for the dropdown
+  const companyContacts = contacts.filter(
+    (contact) => contact.contactType === "company" || contact.type_id === 2
+  );
+
+  console.log("Payment terms from form container: ", paymentTerms);
+
+  // TagsDropdown component for multi-select tags
+  function TagsDropdown({
+    options = [],
+    selectedValues = [],
+    onAdd,
+    onRemove,
+    placeholder = "Select tags",
+    className = "",
+    disabled = false,
+    name = "",
+    id = "",
+  }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      function handleClickOutside(event) {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target)
+        ) {
+          setIsOpen(false);
+        }
+      }
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
+
+    const handleOptionClick = (option) => {
+      onAdd?.(option.id);
+      setIsOpen(false);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setIsOpen(!isOpen);
+      } else if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    // Get available options (not already selected)
+    const availableOptions = options.filter(
+      (option) => !selectedValues.includes(option.id)
+    );
+
+    // Match exact height of native select elements
+    const baseClasses = "form-select w-full relative cursor-pointer py-2 px-3";
+    const disabledClasses = disabled
+      ? "bg-gray-100 dark:bg-gray-700/50 cursor-not-allowed opacity-75"
+      : "";
+    const focusClasses = isOpen ? "border-gray-300 dark:border-gray-600" : "";
+
+    return (
+      <div className={`relative ${className}`} ref={dropdownRef}>
+        <div
+          className={`${baseClasses} ${disabledClasses} ${focusClasses}`}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onKeyDown={handleKeyDown}
+          tabIndex={disabled ? -1 : 0}
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-labelledby={id}
+        >
+          <div className="flex items-center justify-between h-full">
+            <div className="flex-1 min-w-0">
+              {selectedValues.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {selectedValues.map((value) => {
+                    const option = options.find((opt) => opt.id === value);
+                    return (
+                      <span
+                        key={value}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          option?.color ||
+                          "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+                        }`}
+                      >
+                        {option?.name || value}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemove?.(value);
+                          }}
+                          className="ml-1 inline-flex items-center justify-center w-3 h-3 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <span className="text-gray-400 dark:text-gray-500 text-sm">
+                  {placeholder}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Arrow positioned exactly like native select */}
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <ChevronDown
+              className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+                isOpen ? "rotate-180" : ""
+              }`}
+            />
+          </div>
+        </div>
+
+        {/* Hidden select for form compatibility */}
+        <select
+          name={name}
+          id={id}
+          value={selectedValues}
+          className="sr-only"
+          disabled={disabled}
+          multiple
+          onChange={() => {}} // No-op handler to satisfy React's controlled component requirement
+        >
+          {options.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Dropdown menu */}
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-lg shadow-2xl max-h-35 overflow-auto">
+            <ul className="py-1" role="listbox">
+              {availableOptions.length > 0 ? (
+                availableOptions.map((option) => (
+                  <li
+                    key={option.id}
+                    className="relative cursor-pointer select-none py-2 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm text-gray-900 dark:text-gray-100"
+                    onClick={() => handleOptionClick(option)}
+                    role="option"
+                  >
+                    <span className="block truncate">{option.name}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="py-2 px-4 text-sm text-gray-500 dark:text-gray-400">
+                  {t("noMoreTagsAvailable")}
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-[var(--color-gray-50)] dark:bg-gray-900">
       <div className="fixed top-18 right-0 w-auto sm:w-full z-50">
@@ -844,11 +1186,11 @@ function ContactsFormContainer() {
         </ModalBlank>
       </div>
 
-      <div className="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-1">
         {/* Navigation and Actions */}
         <div className="flex justify-between items-center mb-2">
           <button
-            className="btn text-gray-500 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-600  pl-0 focus:outline-none shadow-none "
+            className="btn text-gray-500 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-600 mb-2 pl-0 focus:outline-none shadow-none"
             onClick={handleBackClick}
           >
             <svg
@@ -1129,7 +1471,7 @@ function ContactsFormContainer() {
                   <div className="space-y-2">
                     {state.contact?.phone && (
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                        <Phone className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <Phone className="w-4 h-4 mr-2 text-[#6E8276] shrink-0" />
                         <span className="truncate">
                           {
                             countries.find(
@@ -1142,13 +1484,13 @@ function ContactsFormContainer() {
                     )}
                     {state.contact?.email && (
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                        <Mail className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <Mail className="w-4 h-4 mr-2 text-[#6E8276] shrink-0" />
                         <span className="truncate">{state.contact.email}</span>
                       </div>
                     )}
                     {state.contact?.website && (
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                        <Globe className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <Globe className="w-4 h-4 mr-2 text-[#6E8276] shrink-0" />
                         <span className="truncate">
                           {state.contact.website}
                         </span>
@@ -1156,7 +1498,7 @@ function ContactsFormContainer() {
                     )}
                     {state.contact?.jobPosition && (
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                        <Briefcase className="w-4 h-4 mr-2 text-violet-500 shrink-0" />
+                        <Briefcase className="w-4 h-4 mr-2 text-[#6E8276] shrink-0" />
                         <span className="truncate">
                           {state.contact.jobPosition}
                         </span>
@@ -1203,7 +1545,7 @@ function ContactsFormContainer() {
                         relative py-4 px-1 text-sm font-medium border-b-2 transition-colors duration-200
                         ${
                           state.activeTab === tab.id
-                            ? "border-violet-500 text-violet-600 dark:text-violet-400"
+                            ? "border-[#6E8276] text-[#6E8276]"
                             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
                         }
                       `}
@@ -1220,10 +1562,62 @@ function ContactsFormContainer() {
                 <div className="space-y-8">
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-                      <User className="h-5 w-5 text-violet-500" />
+                      <User className="h-5 w-5 text-[#6E8276]" />
                       {t("basicInformation")}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Contact Type Radio Group */}
+                      <div className="md:col-span-2">
+                        <div className="flex gap-4">
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="contactType"
+                              value="individual"
+                              checked={
+                                state.formData.contactType === "individual"
+                              }
+                              onChange={(e) => {
+                                dispatch({
+                                  type: "SET_FORM_DATA",
+                                  payload: {
+                                    contactType: e.target.value,
+                                    jobPosition: "",
+                                    linkedCompany: "",
+                                  },
+                                });
+                              }}
+                              className="form-radio text-[#6E8276] focus:ring-[#6E8276]"
+                            />
+                            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                              {t("individual")}
+                            </span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="contactType"
+                              value="company"
+                              checked={state.formData.contactType === "company"}
+                              onChange={(e) => {
+                                dispatch({
+                                  type: "SET_FORM_DATA",
+                                  payload: {
+                                    contactType: e.target.value,
+                                    jobPosition: "",
+                                    linkedCompany: "",
+                                  },
+                                });
+                              }}
+                              className="form-radio text-[#6E8276] focus:ring-[#6E8276]"
+                            />
+                            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                              {t("company")}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
                       <div>
                         <label className={getLabelClasses()} htmlFor="name">
                           {t("name")} <span className="text-red-500">*</span>
@@ -1244,27 +1638,8 @@ function ContactsFormContainer() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-5 gap-3">
-                        <div className="col-span-2">
-                          <label
-                            className={getLabelClasses()}
-                            htmlFor="contactType"
-                          >
-                            {t("contactType")}
-                          </label>
-                          <select
-                            id="contactType"
-                            className={getSelectClasses()}
-                            value={state.formData.contactType}
-                            onChange={handleChange}
-                          >
-                            <option value="">{t("selectContactType")}</option>
-                            <option value="individual">Individual</option>
-                            <option value="company">Company</option>
-                          </select>
-                        </div>
-
-                        <div className="col-span-3">
+                      {state.formData.contactType === "individual" && (
+                        <div>
                           <label
                             className={getLabelClasses()}
                             htmlFor="jobPosition"
@@ -1273,60 +1648,38 @@ function ContactsFormContainer() {
                           </label>
                           <input
                             id="jobPosition"
-                            className={`form-input w-full ${
-                              state.formData.contactType !== "individual"
-                                ? "bg-gray-100 dark:bg-gray-700/50 cursor-not-allowed opacity-75"
-                                : ""
-                            }`}
+                            className={getInputClasses("jobPosition")}
                             type="text"
                             value={state.formData.jobPosition}
                             onChange={handleChange}
                             placeholder={t("jobPositionPlaceholder")}
-                            disabled={
-                              state.formData.contactType !== "individual"
-                            }
                           />
                         </div>
-                      </div>
+                      )}
 
-                      <div>
-                        <div className="grid grid-cols-5 gap-3">
-                          <div className="col-span-2">
-                            <label
-                              className={getLabelClasses()}
-                              htmlFor="idType"
-                            >
-                              {t("idType")}
-                            </label>
-                            <input
-                              id="idType"
-                              className={getInputClasses("idType")}
-                              type="text"
-                              value={state.formData.idType}
-                              onChange={handleChange}
-                              placeholder={t("idTypePlaceholder")}
-                              disabled={!state.formData.country}
-                            />
-                          </div>
-
-                          <div className="col-span-3">
-                            <label
-                              className={getLabelClasses()}
-                              htmlFor="idNumber"
-                            >
-                              {t("idNumber")}
-                            </label>
-                            <input
-                              id="idNumber"
-                              className={getInputClasses("idNumber")}
-                              type="text"
-                              value={state.formData.idNumber}
-                              onChange={handleChange}
-                              placeholder={t("idNumberPlaceholder")}
-                            />
-                          </div>
+                      {/* Linked Company Field - Only show for individuals */}
+                      {state.formData.contactType === "individual" && (
+                        <div>
+                          <label
+                            className={getLabelClasses()}
+                            htmlFor="linkedCompany"
+                          >
+                            {t("linkedCompany")}
+                          </label>
+                          <SelectDropdown
+                            options={companyContacts.map((contact) => ({
+                              id: contact.id,
+                              name: contact.name,
+                            }))}
+                            value={state.formData.linkedCompany}
+                            onChange={handleLinkedCompanyChange}
+                            placeholder={t("selectLinkedCompany")}
+                            name="linkedCompany"
+                            id="linkedCompany"
+                            clearable={true}
+                          />
                         </div>
-                      </div>
+                      )}
 
                       <div>
                         <label className={getLabelClasses()} htmlFor="phone">
@@ -1435,12 +1788,67 @@ function ContactsFormContainer() {
                           </div>
                         )}
                       </div>
+
+                      <div>
+                        <div className="grid grid-cols-5 gap-3">
+                          <div className="col-span-2">
+                            <label
+                              className={getLabelClasses()}
+                              htmlFor="idType"
+                            >
+                              {t("idType")}
+                            </label>
+                            <input
+                              id="idType"
+                              className={getInputClasses("idType")}
+                              type="text"
+                              value={state.formData.idType}
+                              onChange={handleChange}
+                              placeholder={t("idTypePlaceholder")}
+                              disabled={!state.formData.country}
+                            />
+                          </div>
+
+                          <div className="col-span-3">
+                            <label
+                              className={getLabelClasses()}
+                              htmlFor="idNumber"
+                            >
+                              {t("idNumber")}
+                            </label>
+                            <input
+                              id="idNumber"
+                              className={getInputClasses("idNumber")}
+                              type="text"
+                              value={state.formData.idNumber}
+                              onChange={handleChange}
+                              placeholder={t("idNumberPlaceholder")}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tags Field */}
+                      <div>
+                        <label className={getLabelClasses()} htmlFor="tags">
+                          {t("tags")}
+                        </label>
+                        <TagsDropdown
+                          options={availableTags}
+                          selectedValues={state.formData.tags}
+                          onAdd={handleAddTag}
+                          onRemove={handleRemoveTag}
+                          placeholder={t("selectTags")}
+                          name="tags"
+                          id="tags"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-violet-500" />
+                      <MapPin className="h-5 w-5 text-[#6E8276]" />
                       {t("address")}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1576,121 +1984,7 @@ function ContactsFormContainer() {
                 <div className="space-y-8">
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-                      <CreditCard className="h-5 w-5 text-violet-500" />
-                      {t("sales")}
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label
-                          className={getLabelClasses()}
-                          htmlFor="salesPaymentTerms"
-                        >
-                          {t("paymentTerms")}
-                        </label>
-                        <input
-                          id="salesPaymentTerms"
-                          className={getInputClasses("salesPaymentTerms")}
-                          type="text"
-                          value={state.formData.salesPaymentTerms}
-                          onChange={handleChange}
-                          placeholder={t("paymentTermsPlaceholder")}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          className={getLabelClasses()}
-                          htmlFor="salesPaymentMethod"
-                        >
-                          {t("paymentMethod")}
-                        </label>
-                        <input
-                          id="salesPaymentMethod"
-                          className={getInputClasses("salesPaymentMethod")}
-                          type="text"
-                          value={state.formData.salesPaymentMethod}
-                          onChange={handleChange}
-                          placeholder={t("paymentMethodPlaceholder")}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-                      <Building className="h-5 w-5 text-violet-500" />
-                      {t("purchase")}
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label
-                          className={getLabelClasses()}
-                          htmlFor="rfqSubmission"
-                        >
-                          {t("rfqSubmission")}
-                        </label>
-                        <select
-                          id="rfqSubmission"
-                          className={getSelectClasses()}
-                          value={state.formData.rfqSubmission}
-                          onChange={handleChange}
-                        >
-                          <option value="">{t("selectRfqSubmission")}</option>
-                          <option value="email">Email</option>
-                          <option value="whatsapp">WhatsApp</option>
-                          <option value="message">Message</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label
-                          className={getLabelClasses()}
-                          htmlFor="purchasePaymentTerms"
-                        >
-                          {t("paymentTerms")}
-                        </label>
-                        <input
-                          id="purchasePaymentTerms"
-                          className={getInputClasses("purchasePaymentTerms")}
-                          type="text"
-                          value={state.formData.purchasePaymentTerms}
-                          onChange={handleChange}
-                          placeholder={t("paymentTermsPlaceholder")}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          className={getLabelClasses()}
-                          htmlFor="purchasePaymentMethod"
-                        >
-                          {t("paymentMethod")}
-                        </label>
-                        <input
-                          id="purchasePaymentMethod"
-                          className={getInputClasses("purchasePaymentMethod")}
-                          type="text"
-                          value={state.formData.purchasePaymentMethod}
-                          onChange={handleChange}
-                          placeholder={t("paymentMethodPlaceholder")}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {state.activeTab === 2 && state.jobPosition == "company" && (
-                <div className="space-y-8">
-                  {/* Contact tab is empty for now */}
-                </div>
-              )}
-
-              {state.activeTab === 4 && (
-                <div className="space-y-8">
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-violet-500" />
+                      <FileText className="h-5 w-5 text-[#6E8276]" />
                       {t("notes")}
                     </h3>
                     <div className="grid grid-cols-1 gap-6">
@@ -1725,7 +2019,11 @@ function ContactsFormContainer() {
                 </button>
                 <button
                   type="submit"
-                  className="btn bg-violet-500 hover:bg-violet-600 text-white transition-colors duration-200 shadow-sm min-w-[100px]"
+                  className={`btn text-white transition-colors duration-200 shadow-sm min-w-[100px] ${
+                    state.isNew
+                      ? "bg-violet-500 hover:bg-violet-600"
+                      : "bg-[#6E8276] hover:bg-[#596a5f]"
+                  }`}
                   disabled={state.isSubmitting}
                 >
                   {state.isSubmitting ? (

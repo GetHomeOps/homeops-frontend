@@ -6,8 +6,18 @@ function DataTableItem({
   onSelect,
   isSelected,
   onItemClick,
+  onInlineEdit,
   isLastRow,
 }) {
+  const handleNameClick = (e) => {
+    e.stopPropagation();
+    if (onInlineEdit) {
+      onInlineEdit(item);
+    } else if (onItemClick) {
+      onItemClick(item);
+    }
+  };
+
   return (
     <>
       <td
@@ -34,7 +44,9 @@ function DataTableItem({
           className={`px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap cursor-pointer ${
             isLastRow && index === columns.length - 1 ? "rounded-br-xl" : ""
           }`}
-          onClick={() => onItemClick(item)}
+          onClick={
+            column.key === "name" ? handleNameClick : () => onItemClick(item)
+          }
         >
           <div className={column.className || "text-left"}>
             {column.render

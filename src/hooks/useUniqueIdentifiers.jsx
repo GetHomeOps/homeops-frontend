@@ -19,6 +19,7 @@ const useUniqueIdentifiers = ({
     app: {name: "Copy", url: "copy"},
     category: {name: "Copy", url: "copy"},
     contact: {name: "Copy", url: "copy"},
+    paymentTerm: {name: "Copy", url: "copy"},
   },
 } = {}) => {
   const generateUniqueName = useCallback(

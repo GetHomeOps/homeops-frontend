@@ -165,6 +165,8 @@ function AppsTable({
       onSort={handleListSort}
       emptyMessage="noAppsFound"
       renderItem={renderItem}
+      allSelected={allSelected}
+      onSelectAll={handleSelectAll}
     />
   );
 }

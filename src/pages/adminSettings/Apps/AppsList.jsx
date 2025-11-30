@@ -220,6 +220,15 @@ function AppsList() {
     return filtered;
   }, [state.searchTerm, apps, viewMode, categories]);
 
+  // Memoize the apps to display in list view (filtered and sorted)
+  const appsToDisplay = useMemo(() => {
+    // If there's a search term, use filtered apps, otherwise use sorted items from context
+    if (state.searchTerm) {
+      return filteredApps;
+    }
+    return listSortedItems;
+  }, [state.searchTerm, filteredApps, listSortedItems]);
+
   // Update filtered apps in state whenever they change
   useEffect(() => {
     dispatch({type: "SET_FILTERED_APPS", payload: filteredApps});
@@ -259,15 +268,15 @@ function AppsList() {
   const allVisibleSelected = useMemo(() => {
     if (viewMode === "list") {
       return (
-        state.filteredApps.length > 0 &&
-        state.filteredApps.every((app) => selectedItems.includes(app.id))
+        appsToDisplay.length > 0 &&
+        appsToDisplay.every((app) => selectedItems.includes(app.id))
       );
     }
     return (
       visibleApps.length > 0 &&
       visibleApps.every((app) => selectedItems.includes(app.id))
     );
-  }, [visibleApps, selectedItems, state.filteredApps, viewMode]);
+  }, [visibleApps, selectedItems, appsToDisplay, viewMode]);
 
   // Handle items per page change
   function handleItemsPerPageChange(value) {
@@ -604,21 +613,21 @@ function AppsList() {
             {viewMode === "list" ? (
               <>
                 <AppsTable
-                  apps={listSortedItems}
+                  apps={appsToDisplay}
                   onToggleSelect={handleToggleSelection}
                   selectedItems={selectedItems}
-                  totalApps={listSortedItems.length}
+                  totalApps={appsToDisplay.length}
                   currentPage={state.currentPage}
                   itemsPerPage={state.itemsPerPage}
                   onAppClick={handleAppClick}
                   categories={categories}
                 />
                 {/* Pagination */}
-                {listSortedItems.length > 0 && (
+                {appsToDisplay.length > 0 && (
                   <div className="mt-8">
                     <PaginationClassic
                       currentPage={state.currentPage}
-                      totalItems={listSortedItems.length}
+                      totalItems={appsToDisplay.length}
                       itemsPerPage={state.itemsPerPage}
                       onPageChange={(page) =>
                         dispatch({type: "SET_CURRENT_PAGE", payload: page})

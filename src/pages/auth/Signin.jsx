@@ -1,27 +1,44 @@
-import React, {useState} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {Link} from "react-router-dom";
 import {useTranslation} from "react-i18next";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../context/AuthContext";
 import "../../i18n";
 
-import AuthImage from "../../images/auth-image.jpg";
+import AuthImage from "../../images/login_house.png";
+import Logo from "../../images/logo-no-bg.png";
 
 function Signin() {
   const navigate = useNavigate();
-  const {login} = useAuth();
+  const {login, currentUser} = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [formErrors, setFormErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const justLoggedIn = useRef(false);
 
   const {t, i18n} = useTranslation();
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
   };
+
+  // Navigate after successful login when currentUser is available
+  useEffect(() => {
+    if (justLoggedIn.current && currentUser) {
+      if (currentUser.databases && currentUser.databases.length > 0) {
+        const dbUrl =
+          currentUser.databases[0].url?.replace(/^\/+/, "") ||
+          currentUser.databases[0].name;
+        navigate(`/${dbUrl}/home`, {replace: true});
+      } else {
+        navigate("/signin", {replace: true});
+      }
+      justLoggedIn.current = false;
+    }
+  }, [currentUser, navigate]);
 
   /** Handle form submit:
    *
@@ -32,9 +49,10 @@ function Signin() {
     setIsSubmitting(true);
     try {
       await login(formData);
-      navigate("/settings/databases", {replace: true});
+      justLoggedIn.current = true;
     } catch (err) {
       setFormErrors(err);
+      justLoggedIn.current = false;
     } finally {
       setIsSubmitting(false);
     }
@@ -60,14 +78,7 @@ function Signin() {
               <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                 {/* Logo */}
                 <Link className="block" to="/">
-                  <svg
-                    className="fill-violet-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width={32}
-                    height={32}
-                  >
-                    <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z" />
-                  </svg>
+                  <img src={Logo} alt="Logo" className="w-15 h-15" />
                 </Link>
               </div>
             </div>

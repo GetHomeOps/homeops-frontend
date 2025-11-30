@@ -54,12 +54,15 @@ export const useTableSort = (
 
   // Sort items based on configuration
   const sortedItems = useMemo(() => {
+    // Ensure items is always an array
+    const safeItems = Array.isArray(items) ? items : [];
+
     if (!groupByKey) {
-      return [...items].sort((a, b) => compareValues(a, b, sortConfig.key));
+      return [...safeItems].sort((a, b) => compareValues(a, b, sortConfig.key));
     }
 
     // Group items first
-    const groupedItems = items.reduce((acc, item) => {
+    const groupedItems = safeItems.reduce((acc, item) => {
       const groupValue = item[groupKey];
       if (!acc[groupValue]) {
         acc[groupValue] = [];

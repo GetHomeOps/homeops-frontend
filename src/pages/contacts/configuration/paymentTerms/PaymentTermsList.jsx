@@ -1,20 +1,25 @@
-import React, {useReducer, useEffect, useContext, useMemo} from "react";
+import React, {
+  useReducer,
+  useEffect,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import {useNavigate, useLocation} from "react-router-dom";
-import useUniqueIdentifiers from "../../../hooks/useUniqueIdentifiers.jsx";
 
-import Sidebar from "../../../partials/Sidebar";
-import Header from "../../../partials/Header";
-import CategoriesTable from "../../../partials/categories/CategoriesTable";
-import DropdownButton from "../../../partials/buttons/ListDropdown";
-import PaginationClassic from "../../../components/PaginationClassic";
-import appContext from "../../../context/AppContext";
-import ModalBlank from "../../../components/ModalBlank";
-import Banner from "../../../partials/containers/Banner";
-import ViewModeDropdown from "../../../components/ViewModeDropdown";
+import Sidebar from "../../../../partials/Sidebar";
+import Header from "../../../../partials/Header";
+import PaymentTermsTable from "../../../../partials/paymentTerms/PaymentTermsTable";
+import DropdownButton from "../../../../partials/buttons/ListDropdown";
+import PaginationClassic from "../../../../components/PaginationClassic";
+import contactContext from "../../../../context/ContactContext";
+import ModalBlank from "../../../../components/ModalBlank";
+import Banner from "../../../../partials/containers/Banner";
+import ViewModeDropdown from "../../../../components/ViewModeDropdown";
 
 import {useTranslation} from "react-i18next";
 
-const PAGE_STORAGE_KEY = "categories_list_page";
+const PAGE_STORAGE_KEY = "payment_terms_list_page";
 
 const initialState = {
   currentPage: 1,
@@ -25,8 +30,10 @@ const initialState = {
   bannerOpen: false,
   bannerType: "success",
   bannerMessage: "",
-  filteredCategories: [],
+  filteredPaymentTerms: [],
   sidebarOpen: false,
+  isAddingNew: false,
+  editingPaymentTerm: null,
 };
 
 function reducer(state, action) {
@@ -49,34 +56,37 @@ function reducer(state, action) {
         bannerType: action.payload.type,
         bannerMessage: action.payload.message,
       };
-    case "SET_FILTERED_CATEGORIES":
+    case "SET_FILTERED_PAYMENT_TERMS":
       return {
         ...state,
-        filteredCategories: action.payload,
+        filteredPaymentTerms: action.payload,
       };
     case "SET_SIDEBAR_OPEN":
       return {...state, sidebarOpen: action.payload};
+    case "SET_ADDING_NEW":
+      return {...state, isAddingNew: action.payload};
+    case "SET_EDITING_PAYMENT_TERM":
+      return {...state, editingPaymentTerm: action.payload};
     default:
       return state;
   }
 }
 
-function CategoriesList() {
+function PaymentTermsList() {
   const {
-    categories,
-    deleteCategory,
-    updateCategory,
-    createCategory,
+    paymentTerms = [],
+    deletePaymentTerm,
+    updatePaymentTerm,
+    createPaymentTerm,
     viewMode,
     setViewMode,
-    selectedCategories,
-    handleCategoryToggleSelection,
-    sortedCategories,
-    categorySortConfig,
-    handleCategorySort,
-    generateUniqueCategoryName,
-    generateUniqueCategoryUrl,
-  } = useContext(appContext);
+    selectedPaymentTerms = [],
+    handlePaymentTermToggleSelection,
+    sortedPaymentTerms,
+    paymentTermSortConfig,
+    handlePaymentTermSort,
+    generateUniquePaymentTermName,
+  } = useContext(contactContext);
 
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
@@ -87,49 +97,155 @@ function CategoriesList() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const {t, i18n} = useTranslation();
+  const {t} = useTranslation();
 
-  // Initialize categoriesList when categories change
-  useEffect(() => {
-    if (categories) {
-      dispatch({type: "SET_FILTERED_CATEGORIES", payload: categories});
-    }
-  }, [categories]);
+  // Memoize filtered payment terms based on search term
+  const filteredPaymentTerms = useMemo(() => {
+    if (!sortedPaymentTerms) return [];
 
-  // Handle navigation to category details
-  const handleCategoryClick = (categoryId) => {
-    navigate(`/admin/categories/${categoryId}`);
-  };
-
-  // Handle navigation to new category form
-  const handleNewCategory = () => {
-    navigate(`/admin/categories/new`);
-  };
-
-  // Memoize filtered categories based on search term
-  const filteredCategories = useMemo(() => {
-    if (!categories) return [];
-
-    return categories.filter((category) => {
+    let filtered = sortedPaymentTerms.filter((paymentTerm) => {
       const searchLower = state.searchTerm.toLowerCase();
-      return category.name.toLowerCase().includes(searchLower);
+      return (
+        paymentTerm?.name?.toLowerCase().includes(searchLower) ||
+        paymentTerm?.description?.toLowerCase().includes(searchLower)
+      );
     });
-  }, [state.searchTerm, categories]);
 
-  // Update filtered categories in state
-  useEffect(() => {
-    dispatch({type: "SET_FILTERED_CATEGORIES", payload: filteredCategories});
-  }, [filteredCategories]);
+    // Add new editable row if adding new payment term
+    if (state.isAddingNew) {
+      const newPaymentTerm = {
+        id: "new-payment-term",
+        name: "",
+        isNew: true,
+        isEditing: true,
+      };
+      filtered = [...filtered, newPaymentTerm];
+    }
+
+    // Mark payment term as editing if it's being edited
+    if (state.editingPaymentTerm) {
+      filtered = filtered.map((paymentTerm) =>
+        paymentTerm.id === state.editingPaymentTerm.id
+          ? {...paymentTerm, isEditing: true}
+          : paymentTerm
+      );
+    }
+
+    return filtered;
+  }, [
+    state.searchTerm,
+    sortedPaymentTerms,
+    state.isAddingNew,
+    state.editingPaymentTerm,
+  ]);
 
   // Memoize allVisibleSelected
-  const allVisibleSelected = useMemo(() => {
-    return (
-      state.filteredCategories?.length > 0 &&
-      state.filteredCategories.every((category) =>
-        selectedCategories.includes(category.id)
-      )
-    );
-  }, [selectedCategories, state.filteredCategories]);
+  // const allVisibleSelected = useMemo(() => {
+  //   return (
+  //     filteredPaymentTerms?.length > 0 &&
+  //     filteredPaymentTerms.every((paymentTerm) =>
+  //       selectedPaymentTerms.includes(paymentTerm.id)
+  //     )
+  //   );
+  // }, [selectedPaymentTerms, filteredPaymentTerms]);
+
+  // Handle navigation to payment term details
+  const handlePaymentTermClick = (paymentTerm) => {
+    navigate(`/contacts/payterms/${paymentTerm.id}`);
+  };
+
+  // Handle navigation to new payment term form
+  const handleNewPaymentTerm = () => {
+    // If we're currently editing a payment term, cancel it first
+    if (state.editingPaymentTerm) {
+      dispatch({type: "SET_EDITING_PAYMENT_TERM", payload: null});
+    }
+    dispatch({type: "SET_ADDING_NEW", payload: true});
+  };
+
+  // Handle inline editing
+  const handleInlineEdit = (paymentTerm) => {
+    // If we're currently adding a new payment term, cancel it first
+    if (state.isAddingNew) {
+      dispatch({type: "SET_ADDING_NEW", payload: false});
+    }
+    // If we're currently editing another payment term, cancel it first
+    if (
+      state.editingPaymentTerm &&
+      state.editingPaymentTerm.id !== paymentTerm.id
+    ) {
+      dispatch({type: "SET_EDITING_PAYMENT_TERM", payload: null});
+    }
+    // Now set the new payment term as editing
+    dispatch({type: "SET_EDITING_PAYMENT_TERM", payload: paymentTerm});
+  };
+
+  // Handle save inline edit
+  const handleSaveInlineEdit = async (paymentTerm, newName) => {
+    if (!newName.trim()) {
+      dispatch({
+        type: "SET_BANNER",
+        payload: {
+          open: true,
+          type: "error",
+          message: t("paymentTermNameRequired"),
+        },
+      });
+      return;
+    }
+
+    dispatch({type: "SET_SUBMITTING", payload: true});
+    try {
+      if (paymentTerm.isNew) {
+        // Create new payment term
+        const paymentTermData = {
+          name: newName.trim(),
+        };
+        await createPaymentTerm(paymentTermData);
+        dispatch({type: "SET_ADDING_NEW", payload: false});
+        dispatch({
+          type: "SET_BANNER",
+          payload: {
+            open: true,
+            type: "success",
+            message: t("paymentTermCreatedSuccessfully"),
+          },
+        });
+      } else {
+        // Update existing payment term
+        await updatePaymentTerm(paymentTerm.id, {name: newName.trim()});
+        dispatch({type: "SET_EDITING_PAYMENT_TERM", payload: null});
+        dispatch({
+          type: "SET_BANNER",
+          payload: {
+            open: true,
+            type: "success",
+            message: t("paymentTermUpdatedSuccessfully"),
+          },
+        });
+      }
+    } catch (error) {
+      dispatch({
+        type: "SET_BANNER",
+        payload: {
+          open: true,
+          type: "error",
+          message: t("paymentTermSaveErrorMessage", {error}),
+        },
+      });
+    } finally {
+      dispatch({type: "SET_SUBMITTING", payload: false});
+    }
+  };
+
+  // Handle cancel inline edit
+  const handleCancelInlineEdit = () => {
+    if (state.isAddingNew) {
+      dispatch({type: "SET_ADDING_NEW", payload: false});
+    } else {
+      dispatch({type: "SET_EDITING_PAYMENT_TERM", payload: null});
+    }
+  };
 
   // Handle items per page change
   function handleItemsPerPageChange(value) {
@@ -155,13 +271,13 @@ function CategoriesList() {
 
   /* Handles delete button click */
   function handleDeleteClick() {
-    if (selectedCategories.length === 0) {
+    if (selectedPaymentTerms.length === 0) {
       dispatch({
         type: "SET_BANNER",
         payload: {
           open: true,
           type: "error",
-          message: "Please select at least one category to delete",
+          message: t("selectPaymentTermToDelete"),
         },
       });
       return;
@@ -169,33 +285,27 @@ function CategoriesList() {
     dispatch({type: "SET_DANGER_MODAL", payload: true});
   }
 
-  /* Handles bulk duplication of selected categories */
+  /* Handles bulk duplication of selected payment terms */
   async function handleDuplicate() {
-    if (selectedCategories.length === 0) return;
+    if (selectedPaymentTerms.length === 0) return;
 
     dispatch({type: "SET_SUBMITTING", payload: true});
     let duplicatedCount = 0;
     try {
-      // Duplicate each selected category
-      for (const categoryId of selectedCategories) {
-        const categoryToDuplicate = categories.find(
-          (category) => category.id === categoryId
+      // Duplicate each selected payment term
+      for (const paymentTermId of selectedPaymentTerms) {
+        const paymentTermToDuplicate = paymentTerms.find(
+          (paymentTerm) => paymentTerm.id === paymentTermId
         );
-        if (categoryToDuplicate) {
-          const uniqueName = generateUniqueCategoryName(
-            categoryToDuplicate.name
+        if (paymentTermToDuplicate) {
+          const uniqueName = generateUniquePaymentTermName(
+            paymentTermToDuplicate.name
           );
-          const uniqueUrl = categoryToDuplicate.url
-            ? generateUniqueCategoryUrl(categoryToDuplicate.url)
-            : undefined;
 
-          const categoryData = {
+          const paymentTermData = {
             name: uniqueName,
-            icon: categoryToDuplicate.icon,
-            url: uniqueUrl,
-            description: categoryToDuplicate.description,
           };
-          await createCategory(categoryData);
+          await createPaymentTerm(paymentTermData);
           duplicatedCount++;
         }
       }
@@ -206,9 +316,9 @@ function CategoriesList() {
         payload: {
           open: true,
           type: "success",
-          message: t("categoryDuplicatedSuccessfullyMessage", {
+          message: t("paymentTermDuplicatedSuccessfullyMessage", {
             count: duplicatedCount,
-            plural: duplicatedCount !== 1 ? "ies" : "y",
+            plural: duplicatedCount !== 1 ? "s" : "",
           }),
         },
       });
@@ -218,7 +328,7 @@ function CategoriesList() {
         payload: {
           open: true,
           type: "error",
-          message: t("categoryDuplicationErrorMessage", {error}),
+          message: t("paymentTermDuplicationErrorMessage", {error}),
         },
       });
     } finally {
@@ -226,32 +336,32 @@ function CategoriesList() {
     }
   }
 
-  /* Handles bulk deletion of selected categories */
+  /* Handles bulk deletion of selected payment terms */
   async function handleDelete() {
-    if (selectedCategories.length === 0) return;
+    if (selectedPaymentTerms.length === 0) return;
 
     // Close modal immediately when Accept is clicked
     dispatch({type: "SET_DANGER_MODAL", payload: false});
 
     dispatch({type: "SET_SUBMITTING", payload: true});
     try {
-      // Store the IDs of successfully deleted categories
+      // Store the IDs of successfully deleted payment terms
       const deletedIds = [];
 
-      // Delete each selected category
-      for (const categoryId of selectedCategories) {
-        const res = await deleteCategory(categoryId);
+      // Delete each selected payment term
+      for (const paymentTermId of selectedPaymentTerms) {
+        const res = await deletePaymentTerm(paymentTermId);
         if (res) {
-          deletedIds.push(categoryId);
+          deletedIds.push(paymentTermId);
         }
       }
 
       // Clear all successfully deleted items from selection at once
-      handleCategoryToggleSelection(deletedIds, false);
+      handlePaymentTermToggleSelection(deletedIds, false);
 
       // If we're on a page that might be empty after deletion, go back one page
       const remainingItems =
-        state.filteredCategories.length - deletedIds.length;
+        state.filteredPaymentTerms.length - deletedIds.length;
       const currentPageItems = state.itemsPerPage;
       if (
         state.currentPage > 1 &&
@@ -266,9 +376,9 @@ function CategoriesList() {
         payload: {
           open: true,
           type: "success",
-          message: t("categoryDeletedSuccessfullyMessage", {
+          message: t("paymentTermDeletedSuccessfullyMessage", {
             count: deletedIds.length,
-            plural: deletedIds.length !== 1 ? "ies" : "y",
+            plural: deletedIds.length !== 1 ? "s" : "",
           }),
         },
       });
@@ -278,7 +388,7 @@ function CategoriesList() {
         payload: {
           open: true,
           type: "error",
-          message: t("categoryDeleteErrorMessage", {error}),
+          message: t("paymentTermDeleteErrorMessage", {error}),
         },
       });
     } finally {
@@ -306,29 +416,6 @@ function CategoriesList() {
           }
         />
 
-        {/* Banner */}
-        <div className="fixed right-0 w-auto sm:w-full z-50">
-          <Banner
-            type={state.bannerType}
-            open={state.bannerOpen}
-            setOpen={(open) =>
-              dispatch({
-                type: "SET_BANNER",
-                payload: {
-                  open,
-                  type: state.bannerType,
-                  message: state.bannerMessage,
-                },
-              })
-            }
-            className={`transition-opacity duration-600 ${
-              state.bannerOpen ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            {state.bannerMessage}
-          </Banner>
-        </div>
-
         {/* Danger Modal */}
         <div className="m-1.5">
           <ModalBlank
@@ -355,20 +442,13 @@ function CategoriesList() {
                 {/* Modal header */}
                 <div className="mb-2">
                   <div className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                    Delete {selectedCategories.length} categor
-                    {selectedCategories.length !== 1 ? "ies" : "y"}?
+                    {t("deletePaymentTerms")}
                   </div>
                 </div>
                 {/* Modal content */}
                 <div className="text-sm mb-10">
                   <div className="space-y-2">
-                    <p>
-                      {t("categoryDeleteConfirmationMessage", {
-                        count: selectedCategories.length,
-                        plural: selectedCategories.length !== 1 ? "ies" : "y",
-                      })}{" "}
-                      {t("actionCantBeUndone")}
-                    </p>
+                    <p>{t("paymentTermDeleteConfirmationMessage")}</p>
                   </div>
                 </div>
                 {/* Modal footer */}
@@ -380,19 +460,41 @@ function CategoriesList() {
                       dispatch({type: "SET_DANGER_MODAL", payload: false});
                     }}
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     className="btn-sm bg-red-500 hover:bg-red-600 text-white"
                     onClick={handleDelete}
-                    disabled={state.isSubmitting}
                   >
-                    {state.isSubmitting ? "Deleting..." : "Accept"}
+                    {t("accept")}
                   </button>
                 </div>
               </div>
             </div>
           </ModalBlank>
+        </div>
+
+        {/* Banner */}
+        <div className="fixed right-0 w-auto sm:w-full z-50">
+          <Banner
+            type={state.bannerType}
+            open={state.bannerOpen}
+            setOpen={(open) =>
+              dispatch({
+                type: "SET_BANNER",
+                payload: {
+                  open,
+                  type: state.bannerType,
+                  message: state.bannerMessage,
+                },
+              })
+            }
+            className={`transition-opacity duration-600 ${
+              state.bannerOpen ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {state.bannerMessage}
+          </Banner>
         </div>
 
         <main className="grow">
@@ -402,14 +504,14 @@ function CategoriesList() {
               {/* Left: Title */}
               <div className="mb-4 sm:mb-0">
                 <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
-                  {t("categories")}
+                  {t("paymentTerms")}
                 </h1>
               </div>
 
               {/* Right: Actions */}
               <div className="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
                 {/* Filter button */}
-                {selectedCategories.length > 0 && (
+                {selectedPaymentTerms.length > 0 && (
                   <DropdownButton
                     align="right"
                     onDelete={handleDeleteClick}
@@ -417,10 +519,10 @@ function CategoriesList() {
                   />
                 )}
 
-                {/* Add Category button */}
+                {/* Add Payment Term button */}
                 <button
                   className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                  onClick={handleNewCategory}
+                  onClick={handleNewPaymentTerm}
                 >
                   <svg
                     className="fill-current shrink-0 xs:hidden"
@@ -430,7 +532,7 @@ function CategoriesList() {
                   >
                     <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
                   </svg>
-                  <span className="max-xs:sr-only">{t("addCategory")}</span>
+                  <span className="max-xs:sr-only">{t("addPaymentTerm")}</span>
                 </button>
               </div>
             </div>
@@ -441,7 +543,7 @@ function CategoriesList() {
                 <input
                   type="text"
                   className="form-input w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 focus:border-gray-300 dark:focus:border-gray-600 rounded-lg shadow-sm"
-                  placeholder={t("searchCategoriesPlaceholder")}
+                  placeholder={t("searchPaymentTermsPlaceholder")}
                   value={state.searchTerm}
                   onChange={(e) =>
                     dispatch({
@@ -466,24 +568,27 @@ function CategoriesList() {
             </div>
 
             {/* Table */}
-            <CategoriesTable
-              categories={state.filteredCategories}
-              onToggleSelect={handleCategoryToggleSelection}
-              selectedItems={selectedCategories}
-              totalCategories={state.filteredCategories?.length || 0}
+            <PaymentTermsTable
+              paymentTerms={filteredPaymentTerms}
+              onToggleSelect={handlePaymentTermToggleSelection}
+              selectedItems={selectedPaymentTerms}
               currentPage={state.currentPage}
               itemsPerPage={state.itemsPerPage}
-              onCategoryClick={handleCategoryClick}
-              sortConfig={categorySortConfig}
-              onSort={handleCategorySort}
+              onPaymentTermClick={handlePaymentTermClick}
+              sortConfig={paymentTermSortConfig}
+              onSort={handlePaymentTermSort}
+              onInlineEdit={handleInlineEdit}
+              onSaveInlineEdit={handleSaveInlineEdit}
+              onCancelInlineEdit={handleCancelInlineEdit}
+              isSubmitting={state.isSubmitting}
             />
 
             {/* Pagination */}
-            {state.filteredCategories?.length > 0 && (
+            {filteredPaymentTerms.length > 0 && (
               <div className="mt-8">
                 <PaginationClassic
                   currentPage={state.currentPage}
-                  totalItems={state.filteredCategories.length}
+                  totalItems={filteredPaymentTerms.length}
                   itemsPerPage={state.itemsPerPage}
                   onPageChange={(page) =>
                     dispatch({type: "SET_CURRENT_PAGE", payload: page})
@@ -499,4 +604,4 @@ function CategoriesList() {
   );
 }
 
-export default CategoriesList;
+export default PaymentTermsList;

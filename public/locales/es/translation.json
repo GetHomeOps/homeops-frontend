@@ -5,5 +5,22 @@
   "forgotPassword": "¿Olvidaste tu contraseña?",
   "signIn": "Iniciar sesión",
   "noAccount": "¿No tienes una cuenta?",
-  "signUp": "Regístrate"
+  "signUp": "Regístrate",
+  "individual": "Individual",
+  "linkedCompany": "Empresa Vinculada",
+  "selectLinkedCompany": "Seleccionar una empresa para vincular",
+  "noCompanySelected": "Ninguna empresa seleccionada",
+  "tags": "Etiquetas",
+  "selectTags": "Seleccionar etiquetas",
+  "addTag": "Agregar etiqueta",
+  "removeTag": "Eliminar etiqueta",
+  "customer": "Cliente",
+  "vip": "VIP",
+  "supplier": "Proveedor",
+  "partner": "Socio",
+  "prospect": "Prospecto",
+  "lead": "Lead",
+  "employee": "Empleado",
+  "contractor": "Contratista",
+  "noMoreTagsAvailable": "No hay más etiquetas disponibles"
 }

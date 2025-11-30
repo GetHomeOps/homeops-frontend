@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef} from "react";
 import {NavLink, useLocation} from "react-router-dom";
 
 import SidebarLinkGroup from "./SidebarLinkGroup";
+import Logo from "../images/logo-no-bg.png";
 
 function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
   const location = useLocation();
@@ -64,11 +65,11 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
       <div
         id="sidebar"
         ref={sidebar}
-        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-scroll lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:!w-64 2xl:w-64! shrink-0 bg-white dark:bg-gray-800 p-4 transition-all duration-200 ease-in-out ${
+        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-scroll lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:!w-64 2xl:w-64! shrink-0 bg-[#456564] p-4 transition-all duration-200 ease-in-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-64"
         } ${
           variant === "v2"
-            ? "border-r border-gray-200 dark:border-gray-700/60"
+            ? "border-r border-white/10"
             : "rounded-r-2xl shadow-xs"
         }`}
       >
@@ -77,7 +78,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
           {/* Close button */}
           <button
             ref={trigger}
-            className="lg:hidden text-gray-500 hover:text-gray-400"
+            className="lg:hidden text-white hover:text-white/80"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-controls="sidebar"
             aria-expanded={sidebarOpen}
@@ -92,192 +93,16 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
             </svg>
           </button>
           {/* Logo */}
-          <NavLink end to="/main" className="block">
-            <svg
-              className="fill-violet-500"
-              xmlns="http://www.w3.org/2000/svg"
-              width={32}
-              height={32}
-            >
-              <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z" />
-            </svg>
+          <NavLink end to="/" className="block">
+            <img src={Logo} alt="Logo" className="w-15 h-15 rounded-full" />
           </NavLink>
         </div>
 
         {/* Links */}
         <div className="space-y-8">
-          {/* Admin group */}
-          <div>
-            <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3">
-              <span
-                className="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6"
-                aria-hidden="true"
-              >
-                •••
-              </span>
-              <span className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                Admin
-              </span>
-            </h3>
-            <ul className="mt-3">
-              <SidebarLinkGroup
-                activecondition={
-                  pathname.includes("apps") || pathname.includes("categories")
-                }
-              >
-                {(handleClick, open) => {
-                  return (
-                    <React.Fragment>
-                      <a
-                        href="#0"
-                        className={`block text-gray-800 dark:text-gray-100 truncate transition duration-150 ${
-                          pathname.includes("apps")
-                            ? ""
-                            : "hover:text-gray-900 dark:hover:text-white"
-                        }`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleClick();
-                          setSidebarExpanded(true);
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <svg
-                              className={`shrink-0 fill-current ${
-                                pathname.includes("apps") ||
-                                pathname.includes("categories")
-                                  ? "text-violet-500"
-                                  : "text-gray-400 dark:text-gray-500"
-                              }`}
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 16 16"
-                            >
-                              <path d="M6 0a6 6 0 0 0-6 6c0 1.077.304 2.062.78 2.912a1 1 0 1 0 1.745-.976A3.945 3.945 0 0 1 2 6a4 4 0 0 1 4-4c.693 0 1.344.194 1.936.525A1 1 0 1 0 8.912.779 5.944 5.944 0 0 0 6 0Z" />
-                              <path d="M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm-4 6a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" />
-                            </svg>
-                            <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                              App Management
-                            </span>
-                          </div>
-                          {/* Icon */}
-                          <div className="flex shrink-0 ml-2">
-                            <svg
-                              className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500 ${
-                                open && "rotate-180"
-                              }`}
-                              viewBox="0 0 12 12"
-                            >
-                              <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                            </svg>
-                          </div>
-                        </div>
-                      </a>
-                      <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                        <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/admin/apps"
-                              className={({isActive}) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-500"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Apps
-                              </span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              end
-                              to="/admin/categories"
-                              className={({isActive}) =>
-                                "block transition duration-150 truncate " +
-                                (isActive
-                                  ? "text-violet-500"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-                              }
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Categories
-                              </span>
-                            </NavLink>
-                          </li>
-                        </ul>
-                      </div>
-                    </React.Fragment>
-                  );
-                }}
-              </SidebarLinkGroup>
-            </ul>
-          </div>
-
-          {/* Apps group */}
-          <div>
-            <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3">
-              <span
-                className="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6"
-                aria-hidden="true"
-              >
-                •••
-              </span>
-              <span className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                Apps
-              </span>
-            </h3>
-            <ul className="mt-3">
-              <li className="mb-1 last:mb-0">
-                <NavLink
-                  end
-                  to="/contacts"
-                  className={({isActive}) =>
-                    "block text-gray-800 dark:text-gray-100 truncate transition duration-150 pl-3 " +
-                    (isActive || pathname.includes("contacts")
-                      ? "text-violet-500"
-                      : "hover:text-gray-900 dark:hover:text-white")
-                  }
-                >
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 fill-current ${
-                        pathname.includes("contacts")
-                          ? "text-violet-500"
-                          : "text-gray-400 dark:text-gray-500"
-                      }`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-                      <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                      Contacts
-                    </span>
-                  </div>
-                </NavLink>
-              </li>
-            </ul>
-          </div>
-
           {/* Pages group */}
           <div>
-            <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3">
+            <h3 className="text-xs uppercase text-white font-bold pl-3">
               <span
                 className="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6"
                 aria-hidden="true"
@@ -289,19 +114,217 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
               </span>
             </h3>
             <ul className="mt-3">
+              {/* Home */}
+              <li
+                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 ${
+                  pathname === "/home" ? "bg-white" : ""
+                }`}
+              >
+                <NavLink
+                  end
+                  to="/home"
+                  className={`block truncate transition duration-150 ${
+                    pathname === "/home"
+                      ? "text-[#456564]"
+                      : "text-white hover:text-white/80"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className={`shrink-0 fill-current ${
+                        pathname === "/home"
+                          ? "text-[#456564]"
+                          : "text-white/70"
+                      }`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M8 0L0 8h2v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8h2L8 0z" />
+                    </svg>
+                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                      Home
+                    </span>
+                  </div>
+                </NavLink>
+              </li>
+
+              {/* Users */}
+              <li
+                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 ${
+                  pathname.includes("users") ? "bg-white" : ""
+                }`}
+              >
+                <NavLink
+                  end
+                  to="/users"
+                  className={`block truncate transition duration-150 ${
+                    pathname.includes("users")
+                      ? "text-[#456564]"
+                      : "text-white hover:text-white/80"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className={`shrink-0 fill-current ${
+                        pathname.includes("users")
+                          ? "text-[#456564]"
+                          : "text-white/70"
+                      }`}
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="currentColor"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M8 8.5C9.93293 8.5 11.5 6.93191 11.5 5C11.5 3.06809 9.93293 1.5 8 1.5C6.06707 1.5 4.5 3.06809 4.5 5C4.5 6.93191 6.06707 8.5 8 8.5Z"
+                        fill="currentColor"
+                      ></path>
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M11.075 10.5C10.5898 10.5 10.1223 10.7926 9.92867 11.2543L8.26274 15H5.75C5.33579 15 5 15.3358 5 15.75C5 16.1642 5.33579 16.5 5.75 16.5H8.75H14.925C15.429 16.5 15.8711 16.1954 16.0675 15.7539L17.6226 12.2622C17.9877 11.4425 17.393 10.5 16.481 10.5H11.075Z"
+                        fill="currentColor"
+                      ></path>
+                      <path
+                        d="M3.86331 14.5236L2.10449 14.5236C1.82831 14.5236 1.57447 14.3718 1.44378 14.1285C1.31309 13.8852 1.32669 13.5897 1.47918 13.3595C3.04625 11.1877 5.45082 9.99768 8.0103 10C8.31321 10.0003 8.61609 10.0147 8.91729 10.0439C8.77216 10.2273 8.64882 10.4322 8.5529 10.6565L7.28821 13.5H5.75C4.95977 13.5 4.26469 13.9074 3.86331 14.5236Z"
+                        fill="currentColor"
+                      ></path>
+                    </svg>
+                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                      Users
+                    </span>
+                  </div>
+                </NavLink>
+              </li>
+
+              {/* Contacts */}
+              <li
+                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 ${
+                  pathname.includes("contacts") ? "bg-white" : ""
+                }`}
+              >
+                <NavLink
+                  end
+                  to="/contacts"
+                  className={`block truncate transition duration-150 ${
+                    pathname.includes("contacts")
+                      ? "text-[#456564]"
+                      : "text-white hover:text-white/80"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className={`shrink-0 fill-current ${
+                        pathname.includes("contacts")
+                          ? "text-[#456564]"
+                          : "text-white/70"
+                      }`}
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M22 21V19C22 17.1362 20.7252 15.5701 19 15.126M15.5 3.29076C16.9659 3.88415 18 5.32131 18 7C18 8.67869 16.9659 10.1159 15.5 10.7092M17 21C17 19.1362 17 18.2044 16.6955 17.4693C16.2895 16.4892 15.5108 15.7105 14.5307 15.3045C13.7956 15 12.8638 15 11 15H8C6.13623 15 5.20435 15 4.46927 15.3045C3.48915 15.7105 2.71046 16.4892 2.30448 17.4693C2 18.2044 2 19.1362 2 21M13.5 7C13.5 9.20914 11.7091 11 9.5 11C7.29086 11 5.5 9.20914 5.5 7C5.5 4.79086 7.29086 3 9.5 3C11.7091 3 13.5 4.79086 13.5 7Z"
+                        stroke="currentColor"
+                        strokeWidth="1"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                      Contacts
+                    </span>
+                  </div>
+                </NavLink>
+              </li>
+
+              {/* Properties */}
+              <li
+                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 ${
+                  pathname.includes("properties") ? "bg-white" : ""
+                }`}
+              >
+                <NavLink
+                  end
+                  to="/properties"
+                  className={`block truncate transition duration-150 ${
+                    pathname.includes("properties")
+                      ? "text-[#456564]"
+                      : "text-white hover:text-white/80"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className={`shrink-0 fill-current ${
+                        pathname.includes("properties")
+                          ? "text-[#456564]"
+                          : "text-white/70"
+                      }`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      x="0px"
+                      y="0px"
+                      width="18px"
+                      height="18px"
+                      viewBox="0 0 18 18"
+                    >
+                      <path
+                        d="M9 6.75C9 5.78379 9.78379 5 10.75 5H15.25C16.2162 5 17 5.78379 17 6.75V14.75C17 15.7162 16.2162 16.5 15.25 16.5H9.75C9.33579 16.5 9 16.1642 9 15.75V6.75Z"
+                        fill="currentColor"
+                        fillOpacity="0.25"
+                      ></path>
+                      <path
+                        d="M2.75 8C1.78379 8 1 8.78379 1 9.75V14.75C1 15.7162 1.78379 16.5 2.75 16.5H6.75C7.16421 16.5 7.5 16.1642 7.5 15.75V9.75C7.5 8.78379 6.71621 8 5.75 8H2.75Z"
+                        fill="currentColor"
+                        fillOpacity="0.25"
+                      ></path>
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M11.5 8.75C11.5 8.33579 11.8358 8 12.25 8H13.75C14.1642 8 14.5 8.33579 14.5 8.75C14.5 9.16421 14.1642 9.5 13.75 9.5H12.25C11.8358 9.5 11.5 9.16421 11.5 8.75Z"
+                        fill="currentColor"
+                      ></path>
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M11.5 11.25C11.5 10.8358 11.8358 10.5 12.25 10.5H13.75C14.1642 10.5 14.5 10.8358 14.5 11.25C14.5 11.6642 14.1642 12 13.75 12H12.25C11.8358 12 11.5 11.6642 11.5 11.25Z"
+                        fill="currentColor"
+                      ></path>
+                      <path
+                        d="M13 2.43201C13 1.21576 11.7905 0.370625 10.6482 0.788703L5.14789 2.80482C4.46015 3.05792 4 3.71236 4 4.448V8H5.75C6.71621 8 7.5 8.78379 7.5 9.75V15.75C7.5 16.1642 7.16421 16.5 6.75 16.5H9.75C9.33579 16.5 9 16.1642 9 15.75V6.75C9 5.78379 9.78379 5 10.75 5H13V2.43201Z"
+                        fill="currentColor"
+                      ></path>
+                    </svg>
+                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                      Properties
+                    </span>
+                  </div>
+                </NavLink>
+              </li>
+
+              {/* Test --- */}
+
+              {/* Test ----- */}
+
               {/* Dashboard */}
-              <SidebarLinkGroup
-                activecondition={pathname.includes("dashboard")}
+              {/* <SidebarLinkGroup
+                activecondition={
+                  pathname === "/" || pathname.includes("dashboard")
+                }
               >
                 {(handleClick, open) => {
                   return (
                     <React.Fragment>
                       <a
                         href="#0"
-                        className={`block text-gray-800 dark:text-gray-100 truncate transition duration-150 ${
-                          pathname.includes("dashboard")
-                            ? ""
-                            : "hover:text-gray-900 dark:hover:text-white"
+                        className={`block truncate transition duration-150 ${
+                          pathname === "/" || pathname.includes("dashboard")
+                            ? "text-[#456564]"
+                            : "text-white hover:text-white/80"
                         }`}
                         onClick={(e) => {
                           e.preventDefault();
@@ -315,8 +338,8 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
                               className={`shrink-0 fill-current ${
                                 pathname === "/" ||
                                 pathname.includes("dashboard")
-                                  ? "text-violet-500"
-                                  : "text-gray-400 dark:text-gray-500"
+                                  ? "text-[#456564]"
+                                  : "text-white/70"
                               }`}
                               xmlns="http://www.w3.org/2000/svg"
                               width="16"
@@ -326,16 +349,19 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
                               <path d="M5.936.278A7.983 7.983 0 0 1 8 0a8 8 0 1 1-8 8c0-.722.104-1.413.278-2.064a1 1 0 1 1 1.932.516A5.99 5.99 0 0 0 2 8a6 6 0 1 0 6-6c-.53 0-1.045.076-1.548.21A1 1 0 1 1 5.936.278Z" />
                               <path d="M6.068 7.482A2.003 2.003 0 0 0 8 10a2 2 0 1 0-.518-3.932L3.707 2.293a1 1 0 0 0-1.414 1.414l3.775 3.775Z" />
                             </svg>
-                            <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            <span className="text-sm font-bold ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                               Dashboard
                             </span>
-                          </div>
-                          {/* Icon */}
-                          <div className="flex shrink-0 ml-2">
+                          </div> */}
+              {/* Icon */}
+              {/* <div className="flex shrink-0 ml-2">
                             <svg
-                              className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500 ${
-                                open && "rotate-180"
-                              }`}
+                              className={`w-3 h-3 shrink-0 ml-1 fill-current ${
+                                pathname === "/" ||
+                                pathname.includes("dashboard")
+                                  ? "text-[#456564]"
+                                  : "text-white/70"
+                              } ${open && "rotate-180"}`}
                               viewBox="0 0 12 12"
                             >
                               <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
@@ -352,8 +378,8 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
                               className={({isActive}) =>
                                 "block transition duration-150 truncate " +
                                 (isActive
-                                  ? "text-violet-500"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                  ? "text-[#456564] bg-white rounded px-2 py-1"
+                                  : "text-white/80 hover:text-white")
                               }
                             >
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
@@ -368,8 +394,8 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
                               className={({isActive}) =>
                                 "block transition duration-150 truncate " +
                                 (isActive
-                                  ? "text-violet-500"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                  ? "text-[#456564] bg-white rounded px-2 py-1"
+                                  : "text-white/80 hover:text-white")
                               }
                             >
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
@@ -384,8 +410,8 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
                               className={({isActive}) =>
                                 "block transition duration-150 truncate " +
                                 (isActive
-                                  ? "text-violet-500"
-                                  : "text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                                  ? "text-[#456564] bg-white rounded px-2 py-1"
+                                  : "text-white/80 hover:text-white")
                               }
                             >
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
@@ -398,22 +424,8 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
                     </React.Fragment>
                   );
                 }}
-              </SidebarLinkGroup>
+              </SidebarLinkGroup> */}
             </ul>
-          </div>
-          {/* More group */}
-          <div>
-            <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3">
-              <span
-                className="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6"
-                aria-hidden="true"
-              >
-                •••
-              </span>
-              <span className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                More
-              </span>
-            </h3>
           </div>
         </div>
 
@@ -421,12 +433,12 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
         <div className="pt-3 hidden lg:inline-flex 2xl:hidden justify-end mt-auto">
           <div className="w-12 pl-4 pr-3 py-2">
             <button
-              className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
+              className="text-white/70 hover:text-white"
               onClick={() => setSidebarExpanded(!sidebarExpanded)}
             >
               <span className="sr-only">Expand / collapse sidebar</span>
               <svg
-                className="shrink-0 fill-current text-gray-400 dark:text-gray-500 sidebar-expanded:rotate-180"
+                className="shrink-0 fill-current text-white/70 sidebar-expanded:rotate-180"
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
                 height="16"

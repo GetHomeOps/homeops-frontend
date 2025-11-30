@@ -1,0 +1,93 @@
+import React, {useMemo} from "react";
+import {useTranslation} from "react-i18next";
+import {useNavigate} from "react-router-dom";
+import DataTable from "../../components/DataTable";
+import DataTableItem from "../../components/DataTableItem";
+
+function UsersTable({
+  users,
+  onToggleSelect,
+  selectedItems,
+  totalUsers,
+  currentPage,
+  itemsPerPage,
+  sortConfig,
+  onSort,
+}) {
+  const {t} = useTranslation();
+  const navigate = useNavigate();
+
+  // Get current page items
+  const currentUsers = useMemo(() => {
+    if (!users) return [];
+    const indexOfLastContact = currentPage * itemsPerPage;
+    const indexOfFirstContact = indexOfLastContact - itemsPerPage;
+    return users.slice(indexOfFirstContact, indexOfLastContact);
+  }, [currentPage, itemsPerPage, users]);
+
+  // Check if all current page items are selected
+  const allSelected = useMemo(() => {
+    return (
+      currentUsers.length > 0 &&
+      currentUsers.every((contact) => selectedItems.includes(contact.id))
+    );
+  }, [currentUsers, selectedItems]);
+
+  // Define columns configuration
+  const columns = [
+    {
+      key: "fullName",
+      label: t("name"),
+      sortable: true,
+    },
+    {
+      key: "email",
+      label: t("email"),
+      sortable: true,
+    },
+    {
+      key: "role",
+      label: t("role"),
+      sortable: true,
+    },
+  ];
+
+  // Custom item renderer
+  const renderItem = (item, handleSelect, selectedItems, onItemClick) => (
+    <DataTableItem
+      item={item}
+      columns={columns}
+      onSelect={handleSelect}
+      isSelected={selectedItems.includes(item.id)}
+      onItemClick={onItemClick}
+    />
+  );
+
+  return (
+    <DataTable
+      items={currentUsers}
+      columns={columns}
+      onItemClick={(user) => {
+        const currentIndex = users.findIndex((c) => c.id === user.id);
+        navigate(`/users/${user.id}`, {
+          state: {
+            currentIndex: currentIndex + 1,
+            totalItems: users.length,
+            visibleContactIds: users.map((user) => user.id),
+          },
+        });
+      }}
+      onSelect={onToggleSelect}
+      selectedItems={selectedItems}
+      totalItems={totalUsers}
+      title="allContacts"
+      sortConfig={sortConfig}
+      onSort={onSort}
+      emptyMessage="noContactsFound"
+      renderItem={renderItem}
+      allSelected={allSelected}
+    />
+  );
+}
+
+export default UsersTable;

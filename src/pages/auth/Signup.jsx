@@ -1,9 +1,58 @@
-import React from "react";
+import React, {useState} from "react";
 import {Link} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
+import {useAuth} from "../../context/AuthContext";
+import {useTranslation} from "react-i18next";
 
 import AuthImage from "../../images/auth-image.jpg";
+import Logo from "../../images/logo-no-bg.png";
+
+const ROLE_OPTIONS = [
+  {value: "agent", label: "Agent"},
+  {value: "user", label: "User"},
+];
 
 function Signup() {
+  const navigate = useNavigate();
+  const {signup} = useAuth();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    fullName: "",
+    role: "",
+  });
+  const [formErrors, setFormErrors] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {t, i18n} = useTranslation();
+
+  /* Handle form submit */
+  async function handleSubmit(evt) {
+    evt.preventDefault();
+    setIsSubmitting(true);
+    console.log("form Data: ", formData);
+    try {
+      var token = await signup(formData);
+
+      console.log("Signed up successfully!");
+      console.log("Token: ", token);
+      // navigate("/home", {replace: true});
+    } catch (err) {
+      setFormErrors(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  /* Update form data field */
+  async function handleChange(evt) {
+    const {name, value} = evt.target;
+    setFormData((data) => ({
+      ...data,
+      [name]: value,
+    }));
+  }
+
   return (
     <main className="bg-white dark:bg-gray-900">
       <div className="relative md:flex">
@@ -15,14 +64,7 @@ function Signup() {
               <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                 {/* Logo */}
                 <Link className="block" to="/">
-                  <svg
-                    className="fill-violet-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width={32}
-                    height={32}
-                  >
-                    <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z" />
-                  </svg>
+                  <img src={Logo} alt="Logo" className="w-15 h-15" />
                 </Link>
               </div>
             </div>
@@ -32,7 +74,7 @@ function Signup() {
                 Create your Account
               </h1>
               {/* Form */}
-              <form>
+              <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
                     <label
@@ -45,19 +87,23 @@ function Signup() {
                       id="email"
                       className="form-input w-full"
                       type="email"
+                      name="email"
+                      onChange={handleChange}
                     />
                   </div>
                   <div>
                     <label
                       className="block text-sm font-medium mb-1"
-                      htmlFor="name"
+                      htmlFor="fullName"
                     >
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
-                      id="name"
+                      id="fullName"
                       className="form-input w-full"
                       type="text"
+                      name="fullName"
+                      onChange={handleChange}
                     />
                   </div>
                   <div>
@@ -67,10 +113,19 @@ function Signup() {
                     >
                       Your Role <span className="text-red-500">*</span>
                     </label>
-                    <select id="role" className="form-select w-full">
-                      <option>Designer</option>
-                      <option>Developer</option>
-                      <option>Accountant</option>
+                    <select
+                      id="role"
+                      className="form-select w-full"
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                    >
+                      <option value="">Select a role</option>
+                      {ROLE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -85,6 +140,8 @@ function Signup() {
                       className="form-input w-full"
                       type="password"
                       autoComplete="on"
+                      name="password"
+                      onChange={handleChange}
                     />
                   </div>
                 </div>
@@ -97,12 +154,13 @@ function Signup() {
                       </span>
                     </label>
                   </div>
-                  <Link
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
                     className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white ml-3 whitespace-nowrap"
-                    to="/"
                   >
-                    Sign Up
-                  </Link>
+                    {isSubmitting ? t("signingUp") : t("signUp")}
+                  </button>
                 </div>
               </form>
               {/* Footer */}

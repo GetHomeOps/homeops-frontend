@@ -6,8 +6,10 @@ import {jwtDecode as decode} from "jwt-decode";
 // Key name for storing token in localStorage for "remember me" re-login
 export const TOKEN_STORAGE_ID = "app-token";
 
+/* Context for Authentication */
 const AuthContext = createContext();
 
+/* Custom hook to use the AuthContext */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -16,6 +18,7 @@ export function useAuth() {
   return context;
 }
 
+/* Provider for the AuthContext */
 export function AuthProvider({children}) {
   const [currentUser, setCurrentUser] = useState({
     data: null,
@@ -23,6 +26,7 @@ export function AuthProvider({children}) {
   });
   const [token, setToken] = useLocalStorage(TOKEN_STORAGE_ID);
 
+  /* Get the current user */
   useEffect(() => {
     async function getCurrentUser() {
       if (token) {
@@ -78,6 +82,7 @@ export function AuthProvider({children}) {
       const {email} = decode(token);
       AppApi.token = token;
       const currentUser = await AppApi.getCurrentUser(email);
+
       const userDatabases = await AppApi.getUserDatabases(currentUser.id);
 
       setCurrentUser({
@@ -96,6 +101,7 @@ export function AuthProvider({children}) {
   async function signup(signupData) {
     try {
       let token = await AppApi.signup(signupData);
+      console.log("Token: ", token);
       setToken(token);
       return token;
     } catch (error) {

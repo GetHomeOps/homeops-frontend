@@ -512,6 +512,7 @@ export function AppProvider({children}) {
         createApp,
         createCategory,
         currentDb,
+        currentUser,
         currentViewApps,
         databaseApps,
         deleteApp,
