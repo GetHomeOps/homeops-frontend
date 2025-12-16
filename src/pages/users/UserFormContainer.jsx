@@ -7,6 +7,7 @@ import {useTranslation} from "react-i18next";
 import DropdownFilter from "../../components/DropdownFilter";
 import UserContext from "../../context/UserContext";
 import contactContext from "../../context/ContactContext";
+import useCurrentDb from "../../hooks/useCurrentDb";
 import {useAutoCloseBanner} from "../../hooks/useAutoCloseBanner";
 import AppApi from "../../api/api";
 import SelectDropdown from "../contacts/SelectDropdown";
@@ -83,6 +84,8 @@ function UsersFormContainer() {
   const {t} = useTranslation();
   const {users, setUsers} = useContext(UserContext);
   const {contacts} = useContext(contactContext);
+  const {currentDb} = useCurrentDb();
+  const dbUrl = currentDb?.url || currentDb?.name || "";
 
   // Fetch user based on URL's user id
   useEffect(() => {
@@ -312,7 +315,7 @@ function UsersFormContainer() {
 
   /* Navigates to users list */
   function handleBackClick() {
-    navigate("/users");
+    navigate(`/${dbUrl}/users`);
   }
 
   /* If editing a user -> return the user's name

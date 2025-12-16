@@ -242,5 +242,8 @@
   "propertySelectionCancelMessage": "Property selection cancelled",
   "propertySelectionSelectMessage": "Select Property",
   "propertySelectionCancelMessage": "Property selection cancelled",
-  "addProperty": "Add Property"
+  "addUser": "Add User",
+  "newUser": "New User",
+  "addProperty": "Add Property",
+  "newProperty": "New Property"
 }

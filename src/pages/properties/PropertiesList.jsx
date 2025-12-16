@@ -10,6 +10,7 @@ import DataTableItem from "../../components/DataTableItem";
 import ModalBlank from "../../components/ModalBlank";
 import Banner from "../../partials/containers/Banner";
 import ListDropdown from "../../partials/buttons/ListDropdown";
+import useCurrentDb from "../../hooks/useCurrentDb";
 
 const PAGE_STORAGE_KEY = "properties_list_page";
 
@@ -134,6 +135,8 @@ const HealthBar = ({value}) => (
 function PropertiesList() {
   const navigate = useNavigate();
   const {t} = useTranslation();
+  const {currentDb} = useCurrentDb();
+  const dbUrl = currentDb?.url || currentDb?.name || "";
   const [properties, setProperties] = useState(mockProperties);
   const [selectedProperties, setSelectedProperties] = useState([]);
   const [sortConfig, setSortConfig] = useState({
@@ -218,9 +221,9 @@ function PropertiesList() {
     dispatch({type: "SET_CURRENT_PAGE", payload: page});
   };
 
-  const handleNewProperty = () => navigate("/properties/new");
+  const handleNewProperty = () => navigate(`/${dbUrl}/properties/new`);
   const handlePropertyClick = (property) =>
-    navigate(`/properties/${property.id}`);
+    navigate(`/${dbUrl}/properties/${property.id}`);
 
   const handleSort = (columnKey) => {
     setSortConfig((prev) => {

@@ -3,10 +3,14 @@ import {NavLink, useLocation} from "react-router-dom";
 
 import SidebarLinkGroup from "./SidebarLinkGroup";
 import Logo from "../images/logo-no-bg.png";
+import useCurrentDb from "../hooks/useCurrentDb";
 
 function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
   const location = useLocation();
   const {pathname} = location;
+
+  const {currentDb} = useCurrentDb();
+  const dbUrl = currentDb?.url || "";
 
   const trigger = useRef(null);
   const sidebar = useRef(null);
@@ -109,22 +113,19 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
               >
                 •••
               </span>
-              <span className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                Pages
-              </span>
             </h3>
             <ul className="mt-3">
               {/* Home */}
               <li
                 className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 ${
-                  pathname === "/home" ? "bg-white" : ""
+                  pathname.includes("/home") ? "bg-white" : ""
                 }`}
               >
                 <NavLink
                   end
-                  to="/home"
+                  to={dbUrl ? `/${dbUrl}/home` : "/home"}
                   className={`block truncate transition duration-150 ${
-                    pathname === "/home"
+                    pathname.includes("/home")
                       ? "text-[#456564]"
                       : "text-white hover:text-white/80"
                   }`}
@@ -158,7 +159,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
               >
                 <NavLink
                   end
-                  to="/users"
+                  to={dbUrl ? `/${dbUrl}/users` : "/users"}
                   className={`block truncate transition duration-150 ${
                     pathname.includes("users")
                       ? "text-[#456564]"
@@ -208,7 +209,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
               >
                 <NavLink
                   end
-                  to="/contacts"
+                  to={dbUrl ? `/${dbUrl}/contacts` : "/contacts"}
                   className={`block truncate transition duration-150 ${
                     pathname.includes("contacts")
                       ? "text-[#456564]"
@@ -251,7 +252,7 @@ function Sidebar({sidebarOpen, setSidebarOpen, variant = "default"}) {
               >
                 <NavLink
                   end
-                  to="/properties"
+                  to={dbUrl ? `/${dbUrl}/properties` : "/properties"}
                   className={`block truncate transition duration-150 ${
                     pathname.includes("properties")
                       ? "text-[#456564]"

@@ -53,7 +53,8 @@ class AppApi {
   /** Signup for site. */
   static async signup(data) {
     let res = await this.request(`auth/register`, data, "POST");
-    return res.token;
+    // Return full response to allow access to both token and user if available
+    return res;
   }
 
   /** Save user profile page. */
@@ -76,80 +77,16 @@ class AppApi {
     return res.database;
   }
 
+  /** Create a user_database record (link user to database) */
+  static async addUserToDatabase(data) {
+    let res = await this.request(`databases/user_databases`, data, "POST");
+    return res.user_database;
+  }
+
   /** Get all databases associated with a user ID. */
   static async getUserDatabases(userId) {
     let res = await this.request(`databases/user/${userId}`);
     return res.databases;
-  }
-
-  /* --------- Apps --------- */
-
-  /* Get all apps associated to a Database ID */
-  static async getAppsByDb(dbId) {
-    let res = await this.request(`apps`, {}, "GET", { "database-id": dbId });
-    return res.apps;
-  }
-
-  /* Get all apps */
-  static async getAllApps() {
-    let res = await this.request(`apps/all`);
-    return res.apps;
-  }
-
-  /* Get an app by ID */
-  static async getApp(id) {
-    let res = await this.request(`apps/${id}`);
-    return res.app;
-  }
-
-  /* Create a new app */
-  static async addApp(data) {
-    let res = await this.request(`apps/`, data, 'POST');
-    return res.app;
-  }
-
-  /* Update an existing app */
-  static async updateApp(id, data) {
-    let res = await this.request(`apps/${id}`, data, 'PATCH');
-    return res.app;
-  }
-
-  /* Delete an app */
-  static async deleteApp(id) {
-    let res = await this.request(`apps/${id}`, {}, 'DELETE');
-    return res;
-  }
-
-  /* --------- Categories --------- */
-
-  /* Get all categories */
-  static async getAllCategories() {
-    let res = await this.request(`categories`);
-    return res.categories;
-  }
-
-  /* Get a category by ID */
-  static async getCategory(id) {
-    let res = await this.request(`categories/${id}`);
-    return res.category;
-  }
-
-  /* Create a new category */
-  static async addCategory(data) {
-    let res = await this.request(`categories/`, data, 'POST');
-    return res.category;
-  }
-
-  /* Update an existing category */
-  static async updateCategory(id, data) {
-    let res = await this.request(`categories/${id}`, data, 'PATCH');
-    return res.category;
-  }
-
-  /* Delete a category */
-  static async deleteCategory(id) {
-    let res = await this.request(`categories/${id}`, {}, 'DELETE');
-    return res;
   }
 
   /* --------- Contacts --------- */

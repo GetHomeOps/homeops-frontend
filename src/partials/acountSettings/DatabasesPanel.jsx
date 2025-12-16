@@ -1,7 +1,7 @@
 import React, {useContext, useState} from "react";
 import {useTranslation} from "react-i18next";
 import {useNavigate} from "react-router-dom";
-import UserContext from "../../context/AppContext";
+import useCurrentDb from "../../hooks/useCurrentDb";
 import AuthContext from "../../context/AuthContext";
 
 function DatabasesPanel() {
@@ -14,7 +14,7 @@ function DatabasesPanel() {
 
   const {t, i18n} = useTranslation();
 
-  const {setSelectedDb} = useContext(UserContext);
+  const {setSelectedDb} = useCurrentDb();
 
   function handleConnect(db) {
     setSelectedDb(db.id);

@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useContext,
 } from "react";
-import {useNavigate, useLocation} from "react-router-dom";
+import {useNavigate, useLocation, useParams} from "react-router-dom";
 
 import {useTranslation} from "react-i18next";
 
@@ -86,8 +86,9 @@ UsersList -> UsersTable, PaginationClassic
 function UsersList() {
   const {users, selectedItems, setSelectedItems, handleToggleSelection} =
     useContext(userContext);
-
   const {t, i18n} = useTranslation();
+  const navigate = useNavigate();
+  const {dbUrl} = useParams();
 
   // Set up component's initial state
   const [state, dispatch] = useReducer(reducer, {
@@ -132,7 +133,7 @@ function UsersList() {
       visibleUsersIds = reversedUsers.map((c) => c.id);
     }
 
-    navigate(`/users/${userId}`, {
+    navigate(`/${currentDb.url}/users/${userId}`, {
       state: {
         currentIndex,
         totalItems,
@@ -142,6 +143,11 @@ function UsersList() {
   };
 
   console.log("Users: ", users);
+
+  function handleNewUserClick() {
+    navigate(`/${dbUrl}/users/new`);
+    dispatch({type: "SET_SIDEBAR_OPEN", payload: false});
+  }
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -272,10 +278,10 @@ function UsersList() {
                   />
                 )}
 
-                {/* Add Contact button */}
+                {/* Add User button */}
                 <button
                   className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-                  /* onClick={handleNewContact} */
+                  onClick={handleNewUserClick}
                 >
                   <svg
                     className="fill-current shrink-0 xs:hidden"
@@ -285,7 +291,7 @@ function UsersList() {
                   >
                     <path d="M15 7H9V1c0-.6-.4-1-1-1S7 .4 7 1v6H1c-.6 0-1 .4-1 1s.4 1 1 1h6v6c0 .6.4 1 1 1s1-.4 1-1V9h6c.6 0 1-.4 1-1s-.4-1-1-1z" />
                   </svg>
-                  <span className="max-xs:sr-only">{t("addContact")}</span>
+                  <span className="max-xs:sr-only">{t("addUser")}</span>
                 </button>
               </div>
             </div>

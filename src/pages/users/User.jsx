@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 
 import Sidebar from "../../partials/Sidebar";
 import Header from "../../partials/Header";
@@ -9,9 +9,10 @@ import ContactFormContainer from "./UserFormContainer";
 function UserContainer() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const {dbUrl} = useParams();
 
   const handleReturn = () => {
-    navigate("/users");
+    navigate(`/${dbUrl}/users`);
   };
 
   return (

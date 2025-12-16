@@ -12,7 +12,7 @@ import {useAuth} from "./AuthContext";
 import {useTranslation} from "react-i18next";
 import useUniqueIdentifiers from "../hooks/useUniqueIdentifiers";
 import useLocalStorage from "../hooks/useLocalStorage";
-import {useApp} from "./AppContext";
+import useCurrentDb from "../hooks/useCurrentDb";
 
 const ContactContext = createContext();
 
@@ -48,7 +48,7 @@ export function ContactProvider({children}) {
       itemType: "paymentTerm",
     });
 
-  const {currentDb} = useApp();
+  const {currentDb} = useCurrentDb();
 
   const customListComparators = {
     // Generic comparator that works for any field
@@ -88,23 +88,24 @@ export function ContactProvider({children}) {
   }, [isLoading, currentUser]);
 
   // Get all payment terms from Backend
-  useEffect(() => {
-    async function getAllPaymentTerms() {
-      if (isLoading || !currentUser) return;
+  // Removed - payment terms are no longer being used
+  // useEffect(() => {
+  //   async function getAllPaymentTerms() {
+  //     if (isLoading || !currentUser) return;
 
-      try {
-        let fetchedPaymentTerms = await AppApi.getPaymentTermsByDbId(
-          currentDb,
-          currentUser.id
-        );
-        setPaymentTerms(fetchedPaymentTerms);
-      } catch (err) {
-        console.error("There was an error retrieving all payment terms:", err);
-        setPaymentTerms([]);
-      }
-    }
-    getAllPaymentTerms();
-  }, [isLoading, currentUser, currentDb]);
+  //     try {
+  //       let fetchedPaymentTerms = await AppApi.getPaymentTermsByDbId(
+  //         currentDb,
+  //         currentUser.id
+  //       );
+  //       setPaymentTerms(fetchedPaymentTerms);
+  //     } catch (err) {
+  //       console.error("There was an error retrieving all payment terms:", err);
+  //       setPaymentTerms([]);
+  //     }
+  //   }
+  //   getAllPaymentTerms();
+  // }, [isLoading, currentUser, currentDb]);
 
   // Function to get the current view's contacts
   const getCurrentViewContacts = useCallback(() => {

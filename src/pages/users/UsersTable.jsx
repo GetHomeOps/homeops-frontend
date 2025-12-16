@@ -1,6 +1,6 @@
 import React, {useMemo} from "react";
 import {useTranslation} from "react-i18next";
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import DataTable from "../../components/DataTable";
 import DataTableItem from "../../components/DataTableItem";
 
@@ -16,6 +16,7 @@ function UsersTable({
 }) {
   const {t} = useTranslation();
   const navigate = useNavigate();
+  const {dbUrl} = useParams();
 
   // Get current page items
   const currentUsers = useMemo(() => {
@@ -69,7 +70,7 @@ function UsersTable({
       columns={columns}
       onItemClick={(user) => {
         const currentIndex = users.findIndex((c) => c.id === user.id);
-        navigate(`/users/${user.id}`, {
+        navigate(`/${dbUrl}/users/${user.id}`, {
           state: {
             currentIndex: currentIndex + 1,
             totalItems: users.length,

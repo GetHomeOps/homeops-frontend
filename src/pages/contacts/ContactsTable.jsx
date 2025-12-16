@@ -1,6 +1,6 @@
 import React, {useMemo} from "react";
 import {useTranslation} from "react-i18next";
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import DataTable from "../../components/DataTable";
 import DataTableItem from "../../components/DataTableItem";
 
@@ -16,6 +16,7 @@ function ContactsTable({
 }) {
   const {t} = useTranslation();
   const navigate = useNavigate();
+  const {dbUrl} = useParams();
 
   // Get current page items
   const currentContacts = useMemo(() => {
@@ -80,7 +81,7 @@ function ContactsTable({
       columns={columns}
       onItemClick={(contact) => {
         const currentIndex = contacts.findIndex((c) => c.id === contact.id);
-        navigate(`/contacts/${contact.id}`, {
+        navigate(`/${dbUrl}/contacts/${contact.id}`, {
           state: {
             currentIndex: currentIndex + 1,
             totalItems: contacts.length,

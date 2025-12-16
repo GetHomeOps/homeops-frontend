@@ -1,22 +1,63 @@
-import React, {useMemo, useState} from "react";
+import React, {useMemo, useState, useRef, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
+import useCurrentDb from "../../hooks/useCurrentDb";
+import SystemsTab from "./SystemsTab";
+import MaintenanceTab from "./MaintenanceTab";
+import IdentityTab from "./IdentityTab";
+import {
+  Bed,
+  Bath,
+  Ruler,
+  Calendar,
+  CheckCircle2,
+  MoreVertical,
+  FileText,
+  Settings,
+  Wrench,
+  Image as ImageIcon,
+  ClipboardList,
+  Home,
+  MapPin,
+  Building,
+  Zap,
+  Droplet,
+  Shield,
+  AlertTriangle,
+  FileCheck,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 const propertyProfile = {
-  id: "PROP-4521",
-  address: "1287 Westbrook Avenue",
-  city: "Evergreen",
-  state: "CO",
-  zip: "80401",
+  id: "HPS-100234",
+  address: "1234 Maplewood Lane",
+  city: "Anytown",
+  state: "USA",
+  zip: "12345",
   price: 785000,
   rooms: 4,
-  squareFeet: 2680,
-  healthScore: 82,
+  bathrooms: 3,
+  squareFeet: 2800,
+  yearBuilt: 1995,
+  hpsScore: 92,
+  healthScore: 92,
   mainPhoto:
-    "https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
   summary:
     "Recently updated colonial home with modern systems, solar, smart security, and low-maintenance landscaping.",
   agentId: "USR-002",
   homeownerIds: ["USR-201", "USR-204"],
+  teamMembers: [
+    {id: "USR-201", name: "Jordan Lee", role: "Homeowner", image: ""},
+    {id: "USR-204", name: "Lena Ortiz", role: "Homeowner", image: ""},
+    {id: "USR-002", name: "Marcus Reed", role: "Primary Agent", image: ""},
+    {id: "USR-003", name: "Olivia Park", role: "Mortgage Partner", image: ""},
+  ],
+  healthMetrics: {
+    documentsUploaded: {current: 8, total: 10},
+    systemsIdentified: {current: 3, total: 6},
+    maintenanceProfileSetup: {complete: true},
+  },
   healthHighlights: [
     {
       label: "Roof",
@@ -99,10 +140,11 @@ const platformUsers = [
 ];
 
 const tabs = [
-  {id: "info", label: "Information"},
-  {id: "photos", label: "Photos"},
-  {id: "maintenance", label: "Maintenance History"},
+  {id: "identity", label: "Identity"},
+  {id: "systems", label: "Systems"},
+  {id: "maintenance", label: "Maintenance"},
   {id: "documents", label: "Documents"},
+  {id: "media", label: "Media"},
 ];
 
 const formatCurrency = new Intl.NumberFormat("en-US", {
@@ -123,11 +165,132 @@ const createInitialPropertyState = () => ({
   documents: propertyProfile.documents.map((doc) => ({...doc})),
 });
 
+// Circular Progress Component for HPS Score
+function CircularProgress({percentage, size = 120, strokeWidth = 8}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div
+      className="relative flex items-center justify-center"
+      style={{width: size, height: size}}
+    >
+      <svg
+        className="transform -rotate-90 absolute inset-0"
+        width={size}
+        height={size}
+      >
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="none"
+          className="text-gray-200 dark:text-gray-700"
+        />
+        {/* Progress circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="text-green-400 dark:text-green-500 transition-all duration-500"
+        />
+      </svg>
+      <div className="relative z-10 flex flex-col items-center justify-center">
+        <div className="text-2xl font-bold text-gray-900 dark:text-white leading-none">
+          {percentage}
+        </div>
+        <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-0.5">
+          HPS
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Donut Chart Component for Health Score
+function DonutChart({percentage, size = 160, strokeWidth = 12}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative" style={{width: size, height: size}}>
+      <svg className="transform -rotate-90" width={size} height={size}>
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="none"
+          className="text-gray-200 dark:text-gray-700"
+        />
+        {/* Progress circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="text-green-400 dark:text-green-500 transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl font-bold text-gray-900 dark:text-white">
+            {percentage}%
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Complete
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PropertyFormContainer() {
   const navigate = useNavigate();
+  const {currentDb} = useCurrentDb();
+  const dbUrl = currentDb?.url || currentDb?.name || "";
   const [propertyData, setPropertyData] = useState(createInitialPropertyState);
-  const [activeTab, setActiveTab] = useState("info");
+  const [activeTab, setActiveTab] = useState("identity");
   const [formChanged, setFormChanged] = useState(false);
+  const [teamMenuOpen, setTeamMenuOpen] = useState(false);
+  const [scorecardOpen, setScorecardOpen] = useState(false);
+  const teamMenuRef = useRef(null);
+
+  // Close team menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (teamMenuRef.current && !teamMenuRef.current.contains(event.target)) {
+        setTeamMenuOpen(false);
+      }
+    }
+
+    if (teamMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [teamMenuOpen]);
 
   const agentOptions = useMemo(
     () => platformUsers.filter((user) => user.role === "Agent"),
@@ -167,8 +330,8 @@ function PropertyFormContainer() {
     setFormChanged(true);
   };
 
-  const handleBackToProperties = () => navigate("/properties");
-  const handleNewProperty = () => navigate("/properties/new");
+  const handleBackToProperties = () => navigate(`/${dbUrl}/properties`);
+  const handleNewProperty = () => navigate(`/${dbUrl}/properties/new`);
 
   const handleCancelChanges = () => {
     setPropertyData(createInitialPropertyState());
@@ -195,7 +358,7 @@ function PropertyFormContainer() {
           >
             <path d="M9.4 13.4l1.4-1.4-4-4 4-4-1.4-1.4L4 8z"></path>
           </svg>
-          <span className="text-base font-medium">Properties</span>
+          <span className="text-lg">Properties</span>
         </button>
         <div className="flex items-center gap-3">
           <button
@@ -207,288 +370,777 @@ function PropertyFormContainer() {
         </div>
       </div>
 
-      <header className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex flex-col md:flex-row gap-6">
-        <div className="w-full md:w-2/5">
-          <div className="relative overflow-hidden rounded-2xl h-64 md:h-full bg-gray-100">
-            <img
-              src={propertyData.mainPhoto}
-              alt={propertyData.address}
-              className="object-cover w-full h-full"
-            />
-          </div>
-        </div>
-        <div className="flex-1 space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold tracking-wide uppercase text-gray-400">
-              Property ID
-            </span>
-            <span className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200">
-              {propertyData.id}
-            </span>
-          </div>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 dark:text-white">
-              {propertyData.address}
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-lg">
-              {propertyData.city}, {propertyData.state} {propertyData.zip}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <p className="text-xs uppercase text-gray-500">Price</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {formatCurrency.format(propertyData.price)}
-              </p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <p className="text-xs uppercase text-gray-500">Rooms</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {propertyData.rooms}
-              </p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <p className="text-xs uppercase text-gray-500">Square Ft</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {propertyData.squareFeet.toLocaleString()}
-              </p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <p className="text-xs uppercase text-gray-500">Health Score</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {propertyData.healthScore}%
-              </p>
-            </div>
-          </div>
-
-          <p className="text-gray-600 dark:text-gray-300 text-base leading-relaxed">
-            {propertyData.summary}
-          </p>
-        </div>
-      </header>
-
-      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Property Health
-        </h2>
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-6">
-            <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">
-              Overall Health
-            </p>
-            <p className="text-5xl font-semibold text-indigo-900 dark:text-white mt-2">
-              {propertyData.healthScore}%
-            </p>
-            <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-2">
-              Trending ↑ 4% vs last quarter
-            </p>
-          </div>
-          <div className="flex-1 space-y-4">
-            {propertyData.healthHighlights.map((highlight) => (
-              <div
-                key={highlight.label}
-                className="border border-gray-200 dark:border-gray-800 rounded-2xl p-4"
-              >
-                <div className="flex justify-between items-center">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {highlight.label}
-                  </p>
-                  <span
-                    className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                      highlight.status === "Good"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {highlight.status}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  {highlight.note}
-                </p>
+      {/* HomeOps Team */}
+      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Your HomeOps Team
+          </h2>
+          <div className="relative" ref={teamMenuRef}>
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setTeamMenuOpen(!teamMenuOpen)}
+            >
+              <MoreVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            </button>
+            {teamMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                <button
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
+                  onClick={() => {
+                    setTeamMenuOpen(false);
+                    // Navigate to edit team page
+                    navigate(`/${dbUrl}/properties/${propertyData.id}/team`);
+                  }}
+                >
+                  Edit Team
+                </button>
               </div>
-            ))}
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+          {propertyData.teamMembers?.map((member) => {
+            const initials = member.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase();
+            return (
+              <div
+                key={member.id}
+                className="flex flex-col items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+              >
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold text-base shadow-sm"
+                  style={{backgroundColor: "#456654"}}
+                >
+                  {member.image ? (
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <div className="text-center w-full">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                    {member.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {member.role}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Hero Section: Property Vitals */}
+      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="flex flex-col md:flex-row">
+          {/* Property Image - Reduced Size */}
+          <div className="w-full md:w-2/5 lg:w-2/5">
+            <div className="relative h-64 md:h-80 lg:h-96">
+              <img
+                src={propertyData.mainPhoto}
+                alt={propertyData.address}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
+          {/* Property Details */}
+          <div className="flex-1 p-6 md:p-8 lg:p-10 flex flex-col justify-between">
+            {/* Top Section: Property ID and HPS Score */}
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <span className="text-xs font-semibold tracking-wide uppercase text-gray-400 dark:text-gray-500 mb-2 block">
+                  Property ID
+                </span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {propertyData.id}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <CircularProgress percentage={propertyData.hpsScore || 92} />
+              </div>
+            </div>
+
+            {/* Middle Section: Address */}
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                {propertyData.address}
+              </h1>
+              <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
+                {propertyData.city}, {propertyData.state} {propertyData.zip}
+              </p>
+            </div>
+
+            {/* Bottom Section: Vitals Bar */}
+            <div className="flex flex-wrap items-center gap-4 md:gap-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 md:p-5">
+              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                <Bed className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm md:text-base font-medium">
+                  {propertyData.rooms} Beds
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                <Bath className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm md:text-base font-medium">
+                  {propertyData.bathrooms || 3} Baths
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                <Ruler className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm md:text-base font-medium">
+                  {propertyData.squareFeet.toLocaleString()} Sq Ft
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                <Calendar className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm md:text-base font-medium">
+                  Built {propertyData.yearBuilt || 1995}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-        <div className="border-b border-gray-200 dark:border-gray-800 px-6">
-          <nav className="flex flex-wrap">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-4 text-sm font-medium transition border-b-2 ${
-                  activeTab === tab.id
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div className="p-6">
-          {activeTab === "info" && (
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Property Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Address
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={propertyData.address}
-                      onChange={handleInputChange}
-                      className="form-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={propertyData.city}
-                      onChange={handleInputChange}
-                      className="form-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={propertyData.state}
-                      onChange={handleInputChange}
-                      className="form-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Zip
-                    </label>
-                    <input
-                      type="text"
-                      name="zip"
-                      value={propertyData.zip}
-                      onChange={handleInputChange}
-                      className="form-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Price
-                    </label>
-                    <input
-                      type="number"
-                      name="price"
-                      value={propertyData.price}
-                      onChange={handleInputChange}
-                      className="form-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Rooms
-                    </label>
-                    <input
-                      type="number"
-                      name="rooms"
-                      value={propertyData.rooms}
-                      onChange={handleInputChange}
-                      className="form-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Square Feet
-                    </label>
-                    <input
-                      type="number"
-                      name="squareFeet"
-                      value={propertyData.squareFeet}
-                      onChange={handleInputChange}
-                      className="form-input w-full"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Summary
-                    </label>
-                    <textarea
-                      name="summary"
-                      value={propertyData.summary}
-                      onChange={handleInputChange}
-                      className="form-input w-full min-h-[120px]"
-                    />
-                  </div>
+      {/* Property Health & Completeness */}
+      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+          Home Passport Health Status
+        </h2>
+
+        <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
+          {/* Donut Chart */}
+          <div className="flex-shrink-0">
+            <DonutChart percentage={propertyData.hpsScore || 92} />
+          </div>
+
+          {/* Detailed Checklist */}
+          <div className="flex-1 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Documents Uploaded */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Documents Uploaded
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {propertyData.healthMetrics?.documentsUploaded.current || 8}
+                    /{propertyData.healthMetrics?.documentsUploaded.total || 10}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                  <div
+                    className="bg-green-400 dark:bg-green-500 h-2.5 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${
+                        ((propertyData.healthMetrics?.documentsUploaded
+                          .current || 8) /
+                          (propertyData.healthMetrics?.documentsUploaded
+                            .total || 10)) *
+                        100
+                      }%`,
+                    }}
+                  ></div>
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  People
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                      Assigned Agent
-                    </label>
-                    <select
-                      value={propertyData.agentId}
-                      onChange={handleAgentChange}
-                      className="form-select w-full"
-                    >
-                      <option value="">Select an agent</option>
-                      {agentOptions.map((agent) => (
-                        <option key={agent.id} value={agent.id}>
-                          {agent.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              {/* Systems Identified */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Systems Identified
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {propertyData.healthMetrics?.systemsIdentified.current || 3}
+                    /{propertyData.healthMetrics?.systemsIdentified.total || 6}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                  <div
+                    className="bg-green-400 dark:bg-green-500 h-2.5 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${
+                        ((propertyData.healthMetrics?.systemsIdentified
+                          .current || 3) /
+                          (propertyData.healthMetrics?.systemsIdentified
+                            .total || 6)) *
+                        100
+                      }%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
 
-                  <div>
-                    <p className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                      Homeowners
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {homeownerOptions.map((homeowner) => (
-                        <label
-                          key={homeowner.id}
-                          className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition ${
-                            propertyData.homeownerIds.includes(homeowner.id)
-                              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30"
-                              : "border-gray-200 dark:border-gray-700"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={propertyData.homeownerIds.includes(
-                              homeowner.id
-                            )}
-                            onChange={() => handleHomeownerToggle(homeowner.id)}
-                            className="form-checkbox text-indigo-600"
-                          />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                            {homeowner.name}
+              {/* Maintenance Profile Setup */}
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Maintenance Profile Setup
+                  </span>
+                  {propertyData.healthMetrics?.maintenanceProfileSetup
+                    .complete ? (
+                    <div
+                      className="flex items-center gap-2"
+                      style={{color: "#456654"}}
+                    >
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-sm font-semibold">Complete</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                      Incomplete
+                    </span>
+                  )}
+                </div>
+                {propertyData.healthMetrics?.maintenanceProfileSetup
+                  .complete && (
+                  <div className="w-full bg-green-400 dark:bg-green-500 rounded-full h-2.5"></div>
+                )}
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <div className="mt-6">
+              <button
+                className="btn text-white transition-colors"
+                style={{
+                  backgroundColor: "#456654",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#3a5548";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "#456654";
+                }}
+              >
+                Complete Outstanding Tasks
+              </button>
+            </div>
+
+            {/* Scorecard Section */}
+            <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setScorecardOpen(!scorecardOpen)}
+                className="flex items-center justify-between w-full mb-4 text-left"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Scorecard
+                </h3>
+                {scorecardOpen ? (
+                  <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                )}
+              </button>
+              {scorecardOpen && (
+                <div className="space-y-6 pl-2">
+                  {/* Documents Scorecard */}
+                  <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h4 className="text-base font-bold text-gray-900 dark:text-white">
+                          Documents
+                        </h4>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {Math.round(
+                            ((propertyData.healthMetrics?.documentsUploaded
+                              .current || 8) /
+                              (propertyData.healthMetrics?.documentsUploaded
+                                .total || 10)) *
+                              100
+                          )}
+                          %
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {propertyData.healthMetrics?.documentsUploaded
+                            .current || 8}
+                          /
+                          {propertyData.healthMetrics?.documentsUploaded
+                            .total || 10}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mini Donut Chart */}
+                    <div className="flex items-center gap-6 mb-4">
+                      <div className="flex-shrink-0">
+                        <DonutChart
+                          percentage={Math.round(
+                            ((propertyData.healthMetrics?.documentsUploaded
+                              .current || 8) /
+                              (propertyData.healthMetrics?.documentsUploaded
+                                .total || 10)) *
+                              100
+                          )}
+                          size={80}
+                          strokeWidth={8}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Completed
                           </span>
-                        </label>
-                      ))}
+                          <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                            {propertyData.healthMetrics?.documentsUploaded
+                              .current || 8}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-green-500 dark:bg-green-400 h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${
+                                ((propertyData.healthMetrics?.documentsUploaded
+                                  .current || 8) /
+                                  (propertyData.healthMetrics?.documentsUploaded
+                                    .total || 10)) *
+                                100
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Pending
+                          </span>
+                          <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                            {(propertyData.healthMetrics?.documentsUploaded
+                              .total || 10) -
+                              (propertyData.healthMetrics?.documentsUploaded
+                                .current || 8)}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-orange-500 dark:bg-orange-400 h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${
+                                (((propertyData.healthMetrics?.documentsUploaded
+                                  .total || 10) -
+                                  (propertyData.healthMetrics?.documentsUploaded
+                                    .current || 8)) /
+                                  (propertyData.healthMetrics?.documentsUploaded
+                                    .total || 10)) *
+                                100
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Document List */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        {[
+                          "Inspection Report",
+                          "Insurance Policy",
+                          "Warranty Documents",
+                          "Permits & Certificates",
+                          "Tax Records",
+                          "HOA Documents",
+                          "Utility Bills",
+                          "Maintenance Records",
+                          "Appraisal Report",
+                          "Title Documents",
+                        ]
+                          .slice(
+                            0,
+                            propertyData.healthMetrics?.documentsUploaded
+                              .total || 10
+                          )
+                          .map((doc, idx) => {
+                            const isCompleted =
+                              idx <
+                              (propertyData.healthMetrics?.documentsUploaded
+                                .current || 8);
+                            return (
+                              <div
+                                key={doc}
+                                className="flex items-center gap-2 py-1"
+                              >
+                                {isCompleted ? (
+                                  <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0"></div>
+                                )}
+                                <span
+                                  className={
+                                    isCompleted
+                                      ? "text-gray-700 dark:text-gray-300 line-through"
+                                      : "text-gray-500 dark:text-gray-400"
+                                  }
+                                >
+                                  {doc}
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Systems Scorecard */}
+                  <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Settings className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <h4 className="text-base font-bold text-gray-900 dark:text-white">
+                          Systems
+                        </h4>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {Math.round(
+                            ((propertyData.healthMetrics?.systemsIdentified
+                              .current || 3) /
+                              (propertyData.healthMetrics?.systemsIdentified
+                                .total || 6)) *
+                              100
+                          )}
+                          %
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {propertyData.healthMetrics?.systemsIdentified
+                            .current || 3}
+                          /
+                          {propertyData.healthMetrics?.systemsIdentified
+                            .total || 6}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mini Donut Chart */}
+                    <div className="flex items-center gap-6 mb-4">
+                      <div className="flex-shrink-0">
+                        <DonutChart
+                          percentage={Math.round(
+                            ((propertyData.healthMetrics?.systemsIdentified
+                              .current || 3) /
+                              (propertyData.healthMetrics?.systemsIdentified
+                                .total || 6)) *
+                              100
+                          )}
+                          size={80}
+                          strokeWidth={8}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Identified
+                          </span>
+                          <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                            {propertyData.healthMetrics?.systemsIdentified
+                              .current || 3}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-green-500 dark:bg-green-400 h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${
+                                ((propertyData.healthMetrics?.systemsIdentified
+                                  .current || 3) /
+                                  (propertyData.healthMetrics?.systemsIdentified
+                                    .total || 6)) *
+                                100
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Missing
+                          </span>
+                          <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                            {(propertyData.healthMetrics?.systemsIdentified
+                              .total || 6) -
+                              (propertyData.healthMetrics?.systemsIdentified
+                                .current || 3)}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-orange-500 dark:bg-orange-400 h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${
+                                (((propertyData.healthMetrics?.systemsIdentified
+                                  .total || 6) -
+                                  (propertyData.healthMetrics?.systemsIdentified
+                                    .current || 3)) /
+                                  (propertyData.healthMetrics?.systemsIdentified
+                                    .total || 6)) *
+                                100
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Systems List */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        {[
+                          {name: "Roof", icon: Building},
+                          {name: "HVAC", icon: Zap},
+                          {name: "Plumbing", icon: Droplet},
+                          {name: "Electrical", icon: Zap},
+                          {name: "Foundation", icon: Building},
+                          {name: "Windows", icon: Home},
+                        ]
+                          .slice(
+                            0,
+                            propertyData.healthMetrics?.systemsIdentified
+                              .total || 6
+                          )
+                          .map((system, idx) => {
+                            const Icon = system.icon;
+                            const isIdentified =
+                              idx <
+                              (propertyData.healthMetrics?.systemsIdentified
+                                .current || 3);
+                            return (
+                              <div
+                                key={system.name}
+                                className="flex items-center gap-2 py-1"
+                              >
+                                {isIdentified ? (
+                                  <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0"></div>
+                                )}
+                                <Icon className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                                <span
+                                  className={
+                                    isIdentified
+                                      ? "text-gray-700 dark:text-gray-300"
+                                      : "text-gray-500 dark:text-gray-400"
+                                  }
+                                >
+                                  {system.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Maintenance Scorecard */}
+                  <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        <h4 className="text-base font-bold text-gray-900 dark:text-white">
+                          Maintenance
+                        </h4>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {propertyData.healthMetrics?.maintenanceProfileSetup
+                            .complete
+                            ? "100%"
+                            : "0%"}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {propertyData.healthMetrics?.maintenanceProfileSetup
+                            .complete
+                            ? "Complete"
+                            : "Incomplete"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mini Donut Chart */}
+                    <div className="flex items-center gap-6 mb-4">
+                      <div className="flex-shrink-0">
+                        <DonutChart
+                          percentage={
+                            propertyData.healthMetrics?.maintenanceProfileSetup
+                              .complete
+                              ? 100
+                              : 0
+                          }
+                          size={80}
+                          strokeWidth={8}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full transition-all duration-500 ${
+                              propertyData.healthMetrics
+                                ?.maintenanceProfileSetup.complete
+                                ? "bg-green-500 dark:bg-green-400"
+                                : "bg-orange-500 dark:bg-orange-400"
+                            }`}
+                            style={{
+                              width: `${
+                                propertyData.healthMetrics
+                                  ?.maintenanceProfileSetup.complete
+                                  ? 100
+                                  : 0
+                              }%`,
+                            }}
+                          ></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {propertyData.healthMetrics?.maintenanceProfileSetup
+                            .complete ? (
+                            <>
+                              <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400" />
+                              <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                Profile Configured
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+                              <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                                Setup Required
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Maintenance Checklist */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="space-y-2 text-sm">
+                        {[
+                          "Schedule Setup",
+                          "Define Maintenance Tasks",
+                          "Set Reminder Intervals",
+                          "Configure Notifications",
+                        ].map((task, idx) => {
+                          const isComplete =
+                            propertyData.healthMetrics?.maintenanceProfileSetup
+                              .complete && idx < 4;
+                          return (
+                            <div
+                              key={task}
+                              className="flex items-center gap-2 py-1"
+                            >
+                              {isComplete ? (
+                                <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0"></div>
+                              )}
+                              <span
+                                className={
+                                  isComplete
+                                    ? "text-gray-700 dark:text-gray-300"
+                                    : "text-gray-500 dark:text-gray-400"
+                                }
+                              >
+                                {task}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Navigation Tabs */}
+      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+        <div className="border-b border-gray-200 dark:border-gray-800 px-6">
+          <nav className="flex flex-wrap gap-1">
+            {tabs.map((tab) => {
+              const icons = {
+                identity: FileText,
+                systems: Settings,
+                maintenance: Wrench,
+                documents: FileText,
+                media: ImageIcon,
+              };
+              const Icon = icons[tab.id] || FileText;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-4 text-sm font-medium transition border-b-2 flex items-center gap-2 ${
+                    activeTab === tab.id
+                      ? "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                      : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
+                  style={
+                    activeTab === tab.id
+                      ? {
+                          borderBottomColor: "#456654",
+                          color: "#456654",
+                        }
+                      : {}
+                  }
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+        <div className="p-6">
+          {activeTab === "identity" && (
+            <IdentityTab
+              propertyData={propertyData}
+              handleInputChange={handleInputChange}
+            />
+          )}
+
+          {activeTab === "systems" && (
+            <SystemsTab
+              propertyData={propertyData}
+              handleInputChange={handleInputChange}
+            />
+          )}
+
+          {activeTab === "maintenance" && (
+            <MaintenanceTab propertyData={propertyData} />
+          )}
+
+          {activeTab === "media" && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Media Content
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {propertyData.photos.map((photo, index) => (
+                    <div
+                      key={photo}
+                      className="relative overflow-hidden rounded-2xl h-48 bg-gray-100"
+                    >
+                      <img
+                        src={photo}
+                        alt={`Property photo ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -506,36 +1158,6 @@ function PropertyFormContainer() {
                     alt={`Property photo ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === "maintenance" && (
-            <div className="space-y-4">
-              {propertyData.maintenanceHistory.map((item) => (
-                <div
-                  key={item.id}
-                  className="border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-                >
-                  <div>
-                    <p className="text-sm text-gray-400">{item.date}</p>
-                    <p className="text-lg font-medium text-gray-900 dark:text-white">
-                      {item.title}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {item.notes}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                      item.status === "Completed"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-indigo-100 text-indigo-700"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
                 </div>
               ))}
             </div>

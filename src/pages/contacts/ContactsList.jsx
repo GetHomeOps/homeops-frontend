@@ -13,6 +13,7 @@ import Sidebar from "../../partials/Sidebar";
 import Header from "../../partials/Header";
 import PaginationClassic from "../../components/PaginationClassic";
 import contactContext from "../../context/ContactContext";
+import useCurrentDb from "../../hooks/useCurrentDb";
 import ModalBlank from "../../components/ModalBlank";
 import Banner from "../../partials/containers/Banner";
 import ViewModeDropdown from "../../components/ViewModeDropdown";
@@ -111,6 +112,8 @@ function ContactsList() {
 
   const navigate = useNavigate();
   const {t, i18n} = useTranslation();
+  const {currentDb} = useCurrentDb();
+  const dbUrl = currentDb?.url || currentDb?.name || "";
 
   // Initialize ContactsList when contacts change
   useEffect(() => {
@@ -164,7 +167,7 @@ function ContactsList() {
       visibleContactIds = reversedContacts.map((c) => c.id);
     }
 
-    navigate(`/contacts/${contactId}`, {
+    navigate(`/${dbUrl}/contacts/${contactId}`, {
       state: {
         currentIndex,
         totalItems,
@@ -175,7 +178,7 @@ function ContactsList() {
 
   // Handle navigation to new contact form
   const handleNewContact = () => {
-    navigate(`/contacts/new`);
+    navigate(`/${dbUrl}/contacts/new`);
   };
 
   // Memoize filtered contacts based on search term

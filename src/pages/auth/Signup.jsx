@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {Link} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import {useAuth} from "../../context/AuthContext";
@@ -14,7 +14,7 @@ const ROLE_OPTIONS = [
 
 function Signup() {
   const navigate = useNavigate();
-  const {signup} = useAuth();
+  const {signup, currentUser} = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -23,22 +23,35 @@ function Signup() {
   });
   const [formErrors, setFormErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const justSignedUp = useRef(false);
 
   const {t, i18n} = useTranslation();
+
+  // Navigate after successful signup when currentUser is available
+  useEffect(() => {
+    if (justSignedUp.current && currentUser) {
+      if (currentUser.databases && currentUser.databases.length > 0) {
+        const dbUrl =
+          currentUser.databases[0].url?.replace(/^\/+/, "") ||
+          currentUser.databases[0].name;
+        navigate(`/${dbUrl}/home`, {replace: true});
+      } else {
+        navigate("/signup", {replace: true});
+      }
+      justSignedUp.current = false;
+    }
+  }, [currentUser, navigate]);
 
   /* Handle form submit */
   async function handleSubmit(evt) {
     evt.preventDefault();
     setIsSubmitting(true);
-    console.log("form Data: ", formData);
     try {
-      var token = await signup(formData);
-
-      console.log("Signed up successfully!");
-      console.log("Token: ", token);
-      // navigate("/home", {replace: true});
+      await signup(formData);
+      justSignedUp.current = true;
     } catch (err) {
       setFormErrors(err);
+      justSignedUp.current = false;
     } finally {
       setIsSubmitting(false);
     }
