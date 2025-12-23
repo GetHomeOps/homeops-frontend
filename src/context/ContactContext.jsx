@@ -73,19 +73,33 @@ export function ContactProvider({children}) {
 
   // Get all contacts from Backend
   useEffect(() => {
-    async function getAllContacts() {
+    async function fetchContacts() {
       if (isLoading || !currentUser) return;
 
       try {
-        let fetchedContacts = await AppApi.getAllContacts();
+        let fetchedContacts;
+
+        // If user is superAdmin, get all contacts
+        if (currentUser.role === "superAdmin") {
+          fetchedContacts = await AppApi.getAllContacts();
+        }
+        // Otherwise, get contacts for the current database
+        else if (currentDb?.id) {
+          fetchedContacts = await AppApi.getContactsByDbId(currentDb.id);
+        }
+        // Fallback: get all contacts if database ID is not available
+        else {
+          fetchedContacts = await AppApi.getAllContacts();
+        }
+
         setContacts(fetchedContacts);
       } catch (err) {
-        console.error("There was an error retrieving all contacts:", err);
+        console.error("There was an error retrieving contacts:", err);
         setContacts([]);
       }
     }
-    getAllContacts();
-  }, [isLoading, currentUser]);
+    fetchContacts();
+  }, [isLoading, currentUser, currentDb]);
 
   // Get all payment terms from Backend
   // Removed - payment terms are no longer being used
@@ -461,45 +475,6 @@ export function ContactProvider({children}) {
       {children}
     </ContactContext.Provider>
   );
-
-  // return (
-  //   <ContactContext.Provider
-  //     value={{
-  //       contacts,
-  //       selectedItems,
-  //       setSelectedItems,
-  //       sortConfig: listSortConfig,
-  //       handleSort: handleListSort,
-  //       viewMode,
-  //       setViewMode,
-  //       createContact,
-  //       updateContact,
-  //       deleteContact,
-  //       duplicateContact,
-  //       bulkDuplicateContacts,
-  //       getCurrentViewContacts,
-  //       getListViewContacts,
-  //       getGroupViewContacts,
-  //       handleToggleSelection,
-  //       listSortedItems: listSortedItems || [],
-  //       /* Payment Terms */
-  //       paymentTerms,
-  //       createPaymentTerm,
-  //       updatePaymentTerm,
-  //       deletePaymentTerm,
-  //       duplicatePaymentTerm,
-  //       selectedPaymentTerms,
-  //       handlePaymentTermToggleSelection,
-  //       sortedPaymentTerms: sortedPaymentTerms || [],
-  //       paymentTermSortConfig,
-  //       handlePaymentTermSort,
-  //       generateUniquePaymentTermName,
-  //       currentDb,
-  //     }}
-  //   >
-  //     {children}
-  //   </ContactContext.Provider>
-  // );
 }
 
 export default ContactContext;

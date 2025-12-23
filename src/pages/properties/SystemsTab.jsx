@@ -7,7 +7,10 @@ import {
   Shield,
   FileCheck,
   ChevronDown,
-  ChevronUp,
+  ChevronRight,
+  Phone,
+  Mail,
+  MapPin,
 } from "lucide-react";
 
 // Installer Banner Component - Professional Recommendation Style
@@ -17,6 +20,8 @@ function InstallerBanner({installerName, systemType}) {
     return {
       name: installerName,
       phone: "(555) 123-4567",
+      email: "contact@installer.com",
+      address: "123 Main Street, City, State 12345",
       photo: "",
       rating: 4.8,
       reviews: 127,
@@ -31,6 +36,8 @@ function InstallerBanner({installerName, systemType}) {
       roof: {
         name: "Elite Roofing Solutions",
         phone: "(555) 234-5678",
+        email: "info@eliteroofing.com",
+        address: "456 Roofing Ave, City, State 12345",
         rating: 4.9,
         reviews: 342,
         licensed: true,
@@ -40,6 +47,8 @@ function InstallerBanner({installerName, systemType}) {
       gutter: {
         name: "Premium Gutter Pro",
         phone: "(555) 345-6789",
+        email: "info@premiumgutter.com",
+        address: "789 Gutter Lane, City, State 12345",
         rating: 4.7,
         reviews: 189,
         licensed: true,
@@ -49,6 +58,8 @@ function InstallerBanner({installerName, systemType}) {
       siding: {
         name: "Expert Siding Co",
         phone: "(555) 456-7890",
+        email: "contact@expertsiding.com",
+        address: "321 Siding Blvd, City, State 12345",
         rating: 4.8,
         reviews: 256,
         licensed: true,
@@ -58,6 +69,8 @@ function InstallerBanner({installerName, systemType}) {
       window: {
         name: "Window Masters",
         phone: "(555) 567-8901",
+        email: "info@windowmasters.com",
+        address: "654 Window Way, City, State 12345",
         rating: 4.9,
         reviews: 421,
         licensed: true,
@@ -67,6 +80,8 @@ function InstallerBanner({installerName, systemType}) {
       heating: {
         name: "Comfort HVAC Services",
         phone: "(555) 678-9012",
+        email: "contact@comforthvac.com",
+        address: "987 HVAC Street, City, State 12345",
         rating: 4.8,
         reviews: 298,
         licensed: true,
@@ -76,6 +91,8 @@ function InstallerBanner({installerName, systemType}) {
       ac: {
         name: "Cool Air Experts",
         phone: "(555) 789-0123",
+        email: "info@coolairexperts.com",
+        address: "147 AC Avenue, City, State 12345",
         rating: 4.7,
         reviews: 203,
         licensed: true,
@@ -85,6 +102,8 @@ function InstallerBanner({installerName, systemType}) {
       waterHeating: {
         name: "Hot Water Pros",
         phone: "(555) 890-1234",
+        email: "contact@hotwaterpros.com",
+        address: "258 Water Road, City, State 12345",
         rating: 4.9,
         reviews: 167,
         licensed: true,
@@ -94,6 +113,8 @@ function InstallerBanner({installerName, systemType}) {
       electrical: {
         name: "Spark Electric",
         phone: "(555) 901-2345",
+        email: "info@sparkelectric.com",
+        address: "369 Electric Drive, City, State 12345",
         rating: 4.8,
         reviews: 312,
         licensed: true,
@@ -103,6 +124,8 @@ function InstallerBanner({installerName, systemType}) {
       plumbing: {
         name: "Flow Plumbing Co",
         phone: "(555) 012-3456",
+        email: "contact@flowplumbing.com",
+        address: "741 Plumbing Court, City, State 12345",
         rating: 4.9,
         reviews: 445,
         licensed: true,
@@ -114,6 +137,8 @@ function InstallerBanner({installerName, systemType}) {
       recommendations[systemType] || {
         name: "Trusted Contractor",
         phone: "(555) 123-4567",
+        email: "info@trustedcontractor.com",
+        address: "123 Business St, City, State 12345",
         rating: 4.8,
         reviews: 200,
         licensed: true,
@@ -137,97 +162,85 @@ function InstallerBanner({installerName, systemType}) {
     .toUpperCase()
     .slice(0, 2);
 
+  // Extract contact name and company name
+  const companyName = displayInstaller.name;
+  const contactName =
+    installerName && installerName !== companyName ? installerName : null;
+
   return (
-    <div className="mb-6 relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 shadow-md hover:shadow-lg transition-shadow">
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          {/* Avatar/Logo */}
-          <div
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-base shadow-sm flex-shrink-0 border-2 border-white dark:border-gray-700 ring-1 ring-emerald-100 dark:ring-emerald-900/50"
-            style={{backgroundColor: "#456654"}}
-          >
-            {displayInstaller.photo ? (
-              <img
-                src={displayInstaller.photo}
-                alt={displayInstaller.name}
-                className="w-full h-full rounded-lg object-cover"
-              />
-            ) : (
-              initials
-            )}
-          </div>
+    <div
+      className="mb-6 rounded-lg border p-3"
+      style={{backgroundColor: "#264B48", borderColor: "#1e3a37"}}
+    >
+      <div className="flex items-center gap-3">
+        {/* Avatar/Photo - Rounded */}
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-base flex-shrink-0 bg-white/20 border-2"
+          style={{borderColor: "#ffffff40"}}
+        >
+          {displayInstaller.photo ? (
+            <img
+              src={displayInstaller.photo}
+              alt={companyName}
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            initials
+          )}
+        </div>
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-2">
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Name */}
+            {contactName ? (
               <div>
-                <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">
-                  {displayInstaller.name}
+                <h4 className="text-sm font-semibold text-white">
+                  {contactName}
                 </h4>
-                {isRecommended && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                    Trusted contractor in your area
-                  </p>
-                )}
+                <p className="text-xs font-medium text-white/90">
+                  {companyName}
+                </p>
               </div>
-              {/* Rating */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-yellow-500 text-sm">★</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                  {displayInstaller.rating || 4.8}
-                </span>
-              </div>
-            </div>
+            ) : (
+              <h4 className="text-sm font-semibold text-white">
+                {companyName}
+              </h4>
+            )}
 
-            {/* Badges and Contact */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {isRecommended && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 dark:bg-emerald-700 border border-emerald-700/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
-                  <span className="text-[10px] font-semibold text-white">
-                    HomeOps Recommends
-                  </span>
-                </div>
-              )}
-              {displayInstaller.licensed && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600">
-                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-                    ✓ Licensed
-                  </span>
-                </div>
-              )}
-              {displayInstaller.insured && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600">
-                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-                    ✓ Insured
-                  </span>
-                </div>
-              )}
-              {displayInstaller.yearsExperience && (
-                <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">
-                  {displayInstaller.yearsExperience}+ years
-                </span>
-              )}
-              <a
-                href={`tel:${displayInstaller.phone}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white font-semibold text-xs transition-all shadow-sm hover:shadow-md ml-auto"
-              >
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {/* Address */}
+            {displayInstaller.address && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-white/80 flex-shrink-0" />
+                <p className="text-xs text-white">{displayInstaller.address}</p>
+              </div>
+            )}
+
+            {/* Phone */}
+            {displayInstaller.phone && (
+              <div className="flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-white/80 flex-shrink-0" />
+                <a
+                  href={`tel:${displayInstaller.phone}`}
+                  className="text-xs text-white hover:text-white/80"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  />
-                </svg>
-                {displayInstaller.phone}
-              </a>
-            </div>
+                  {displayInstaller.phone}
+                </a>
+              </div>
+            )}
+
+            {/* Email */}
+            {displayInstaller.email && (
+              <div className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-white/80 flex-shrink-0" />
+                <a
+                  href={`mailto:${displayInstaller.email}`}
+                  className="text-xs text-white hover:text-white/80"
+                >
+                  {displayInstaller.email}
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -259,9 +272,9 @@ function CollapsibleSection({
           </h3>
         </div>
         {isOpen ? (
-          <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-        ) : (
           <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+        ) : (
+          <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         )}
       </button>
 

@@ -223,6 +223,9 @@ function DonutChart({percentage, size = 160, strokeWidth = 12}) {
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (percentage / 100) * circumference;
 
+  // Adjust text size based on chart size
+  const textSizeClass = size <= 80 ? "text-xl" : "text-4xl";
+
   return (
     <div className="relative" style={{width: size, height: size}}>
       <svg className="transform -rotate-90" width={size} height={size}>
@@ -252,11 +255,10 @@ function DonutChart({percentage, size = 160, strokeWidth = 12}) {
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl font-bold text-gray-900 dark:text-white">
+          <div
+            className={`${textSizeClass} font-bold text-gray-900 dark:text-white`}
+          >
             {percentage}%
-          </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Complete
           </div>
         </div>
       </div>
@@ -370,76 +372,6 @@ function PropertyFormContainer() {
         </div>
       </div>
 
-      {/* HomeOps Team */}
-      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Your HomeOps Team
-          </h2>
-          <div className="relative" ref={teamMenuRef}>
-            <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={() => setTeamMenuOpen(!teamMenuOpen)}
-            >
-              <MoreVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </button>
-            {teamMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                <button
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
-                  onClick={() => {
-                    setTeamMenuOpen(false);
-                    // Navigate to edit team page
-                    navigate(`/${dbUrl}/properties/${propertyData.id}/team`);
-                  }}
-                >
-                  Edit Team
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
-          {propertyData.teamMembers?.map((member) => {
-            const initials = member.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .toUpperCase();
-            return (
-              <div
-                key={member.id}
-                className="flex flex-col items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-              >
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold text-base shadow-sm"
-                  style={{backgroundColor: "#456654"}}
-                >
-                  {member.image ? (
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    initials
-                  )}
-                </div>
-                <div className="text-center w-full">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                    {member.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {member.role}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* Hero Section: Property Vitals */}
       <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="flex flex-col md:flex-row">
@@ -509,6 +441,76 @@ function PropertyFormContainer() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* HomeOps Team */}
+      <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Your HomeOps Team
+          </h2>
+          <div className="relative" ref={teamMenuRef}>
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setTeamMenuOpen(!teamMenuOpen)}
+            >
+              <MoreVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            </button>
+            {teamMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                <button
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
+                  onClick={() => {
+                    setTeamMenuOpen(false);
+                    // Navigate to edit team page
+                    navigate(`/${dbUrl}/properties/${propertyData.id}/team`);
+                  }}
+                >
+                  Edit Team
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+          {propertyData.teamMembers?.map((member) => {
+            const initials = member.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase();
+            return (
+              <div
+                key={member.id}
+                className="flex flex-col items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+              >
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold text-base shadow-sm"
+                  style={{backgroundColor: "#456654"}}
+                >
+                  {member.image ? (
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <div className="text-center w-full">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                    {member.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {member.role}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

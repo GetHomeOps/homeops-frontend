@@ -1,6 +1,7 @@
 import React, {createContext, useState, useContext, useEffect} from "react";
 import AppApi from "../api/api";
 import {useAuth} from "./AuthContext";
+import useCurrentDb from "../hooks/useCurrentDb";
 
 const UserContext = createContext();
 
@@ -9,19 +10,35 @@ export function UserProvider({children}) {
   const [users, setUsers] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const {currentUser, isLoading} = useAuth();
+  const {currentDb} = useCurrentDb();
 
   useEffect(() => {
-    async function getAllUsers() {
+    async function fetchUsers() {
       if (isLoading || !currentUser) return;
+
       try {
-        let fetchedUsers = await AppApi.getAllUsers();
+        let fetchedUsers;
+
+        // If user is superAdmin, get all users
+        if (currentUser.role === "superAdmin") {
+          fetchedUsers = await AppApi.getAllUsers();
+        }
+        // If user is agent, get users for the current database
+        else if (currentUser.role === "agent" && currentDb?.id) {
+          fetchedUsers = await AppApi.getUsersByDatabaseId(currentDb.id);
+        }
+        // Default: get all users (fallback for other roles or if database ID is not available)
+        else {
+          fetchedUsers = await AppApi.getAllUsers();
+        }
+
         setUsers(fetchedUsers);
       } catch (err) {
-        console.error("There was an error retrieving all users:", err);
+        console.error("There was an error retrieving users:", err);
       }
     }
-    getAllUsers();
-  }, [isLoading, currentUser]);
+    fetchUsers();
+  }, [isLoading, currentUser, currentDb]);
 
   /* Handle selection state */
   const handleToggleSelection = (ids, isSelected) => {

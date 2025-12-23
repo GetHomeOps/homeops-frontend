@@ -69,6 +69,12 @@ class AppApi {
     return res.users;
   }
 
+  /** Get users by database ID */
+  static async getUsersByDatabaseId(databaseId) {
+    let res = await this.request(`users/db/${databaseId}`);
+    return res.users;
+  }
+
   /* --------- Databases --------- */
 
   /** Create a new database */
